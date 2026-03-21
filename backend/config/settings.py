@@ -8,10 +8,10 @@ from typing import Optional
 
 @dataclass
 class MQTTConfig:
-    broker_host: str = os.getenv('MQTT_HOST', 'localhost')
-    broker_port: int = int(os.getenv('MQTT_PORT', '1883'))
-    username: Optional[str] = os.getenv('MQTT_USER')
-    password: Optional[str] = os.getenv('MQTT_PASS')
+    broker_host: str = 'broker.hivemq.com'
+    broker_port: int = 1883
+    username: Optional[str] = None
+    password: Optional[str] = None
     keepalive: int = 60
 
 
