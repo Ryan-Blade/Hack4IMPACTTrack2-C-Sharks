@@ -137,7 +137,8 @@ class EcoSyncBackend:
         def run_api():
             import uvicorn
             from api.main import app
-            uvicorn.run(app, host="0.0.0.0", port=8000, log_level="warning")
+            from config.settings import api_config
+            uvicorn.run(app, host=api_config.host, port=api_config.port, log_level="warning")
         
         api_thread = threading.Thread(target=run_api, daemon=True)
         api_thread.start()
