@@ -1,0 +1,206 @@
+/* EcoSync - Custom Styles */
+
+/* Dark theme with neon accents */
+:root {
+  --neon-green: #00ff00;
+  --neon-emerald: #10b981;
+  --neon-cyan: #06b6d4;
+  --dark-bg: #0f172a;
+  --dark-surface: #1e293b;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #10b981;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00ff00;
+}
+
+/* Neon glow effects */
+.neon-glow {
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.5),
+              0 0 20px rgba(16, 185, 129, 0.3),
+              0 0 30px rgba(16, 185, 129, 0.2);
+}
+
+.neon-text {
+  text-shadow: 0 0 5px rgba(16, 185, 129, 0.8),
+               0 0 10px rgba(16, 185, 129, 0.5);
+}
+
+.neon-border {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.2),
+              inset 0 0 10px rgba(16, 185, 129, 0.1);
+}
+
+/* Animation keyframes */
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(16, 185, 129, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.8),
+                0 0 30px rgba(0, 255, 0, 0.4);
+  }
+}
+
+@keyframes scanline {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(100%);
+  }
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Terminal effects */
+.terminal-scanline {
+  position: relative;
+  overflow: hidden;
+}
+
+.terminal-scanline::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(to bottom, transparent, rgba(16, 185, 129, 0.5), transparent);
+  animation: scanline 3s linear infinite;
+  pointer-events: none;
+}
+
+/* Grid background pattern */
+.grid-pattern {
+  background-image: 
+    linear-gradient(rgba(16, 185, 129, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(16, 185, 129, 0.1) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Glass morphism effect */
+.glass {
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Status indicator animations */
+.status-pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Building hover effects */
+.building-hover {
+  transition: all 0.3s ease;
+}
+
+.building-hover:hover {
+  transform: scale(1.05);
+  filter: brightness(1.2);
+}
+
+/* Chart tooltip styling */
+.recharts-tooltip-wrapper {
+  outline: none !important;
+}
+
+/* Custom button styles */
+.btn-neon {
+  background: transparent;
+  border: 1px solid #10b981;
+  color: #10b981;
+  transition: all 0.3s ease;
+}
+
+.btn-neon:hover {
+  background: rgba(16, 185, 129, 0.2);
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+  border-color: rgba(16, 185, 129, 0.5);
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.15);
+}
+
+/* Loading animation */
+.loading-dots::after {
+  content: '';
+  animation: loading-dots 1.5s infinite;
+}
+
+@keyframes loading-dots {
+  0% { content: '.'; }
+  33% { content: '..'; }
+  66% { content: '...'; }
+  100% { content: '.'; }
+}
+
+/* Critical alert animation */
+.critical-pulse {
+  animation: critical-pulse 1s ease-in-out infinite;
+}
+
+@keyframes critical-pulse {
+  0%, 100% {
+    background-color: rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    background-color: rgba(239, 68, 68, 0.4);
+  }
+}
+
+/* Energy flow animation */
+.energy-flow {
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(16, 185, 129, 0.3) 50%, 
+    transparent 100%
+  );
+  background-size: 200% 100%;
+  animation: energy-flow 2s linear infinite;
+}
+
+@keyframes energy-flow {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .neon-text {
+    text-shadow: none;
+  }
+}

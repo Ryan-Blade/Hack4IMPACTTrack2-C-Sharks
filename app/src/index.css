@@ -1,0 +1,131 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Dark theme with neon emerald accents */
+    --background: 222 47% 6%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 222 47% 6%;
+    --secondary: 217 33% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 222 47% 6%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 33% 17%;
+    --input: 217 33% 17%;
+    --ring: 160 84% 39%;
+    --radius: 0.5rem;
+    
+    /* Custom neon colors */
+    --neon-green: 142 100% 50%;
+    --neon-emerald: 160 84% 39%;
+    --neon-cyan: 187 94% 43%;
+    
+    /* Sidebar */
+    --sidebar-background: 222 47% 6%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 160 84% 39%;
+    --sidebar-primary-foreground: 222 47% 6%;
+    --sidebar-accent: 217 33% 17%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217 33% 17%;
+    --sidebar-ring: 160 84% 39%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  /* Neon glow utilities */
+  .glow-emerald {
+    box-shadow: 0 0 10px hsl(var(--neon-emerald) / 0.5),
+                0 0 20px hsl(var(--neon-emerald) / 0.3),
+                0 0 30px hsl(var(--neon-emerald) / 0.2);
+  }
+  
+  .glow-green {
+    box-shadow: 0 0 10px hsl(var(--neon-green) / 0.5),
+                0 0 20px hsl(var(--neon-green) / 0.3);
+  }
+  
+  .text-glow {
+    text-shadow: 0 0 10px hsl(var(--neon-emerald) / 0.8);
+  }
+  
+  /* Glass effect */
+  .glass {
+    @apply bg-card/80 backdrop-blur-md;
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    @apply bg-gradient-to-r from-emerald-400 to-green-400 bg-clip-text text-transparent;
+  }
+  
+  /* Animation utilities */
+  .animate-pulse-slow {
+    animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .animate-glow {
+    animation: glow 2s ease-in-out infinite alternate;
+  }
+  
+  @keyframes glow {
+    from {
+      box-shadow: 0 0 5px hsl(var(--neon-emerald) / 0.5);
+    }
+    to {
+      box-shadow: 0 0 20px hsl(var(--neon-emerald) / 0.8),
+                  0 0 30px hsl(var(--neon-green) / 0.4);
+    }
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: hsl(var(--background));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--primary));
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--neon-green));
+}
+
+/* Selection color */
+::selection {
+  background: hsl(var(--primary) / 0.3);
+  color: hsl(var(--foreground));
+}

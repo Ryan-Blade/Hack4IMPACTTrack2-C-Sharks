@@ -1,0 +1,15 @@
+{
+  "name": "ecosync",
+  "version": "1.0.0",
+  "description": "EcoSync Smart City Energy Microgrid - unified startup",
+  "scripts": {
+    "start": "concurrently --kill-others --names \"BACKEND,FRONTEND\" --prefix-colors \"green,cyan\" \"npm run backend\" \"npm run frontend\"",
+    "backend": "cd backend && .\\venv\\Scripts\\python.exe main.py --buildings 50",
+    "frontend": "cd app && npm run dev",
+    "frontend:only": "cd app && npm run dev",
+    "backend:only": "cd backend && .\\venv\\Scripts\\python.exe main.py --buildings 50"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
