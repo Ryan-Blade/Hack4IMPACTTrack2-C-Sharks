@@ -240,6 +240,7 @@ export default function LandingPage() {
   const navigate = useNavigate();
   const [scrollY, setScrollY]       = useState(0);
   const [heroVisible, setHeroVisible] = useState(false);
+  const { ref: ctaRef, inView: ctaInView } = useInView(0.2);
 
   useEffect(() => {
     setTimeout(() => setHeroVisible(true), 120);
@@ -476,18 +477,15 @@ export default function LandingPage() {
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[200px] bg-emerald-500/8 rounded-full blur-2xl" />
         </div>
 
-        {(() => {
-          const { ref, inView } = useInView(0.2);
-          return (
-            <div
-              ref={ref}
-              className={`relative z-10 max-w-3xl mx-auto text-center transition-all duration-1000 ease-out ${
-                inView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
-              }`}
-            >
-              {/* Pre-heading */}
-              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 text-emerald-400 text-xs font-semibold mb-8 uppercase tracking-widest">
-                <Activity className="w-3.5 h-3.5" />
+        <div
+          ref={ctaRef}
+          className={`relative z-10 max-w-3xl mx-auto text-center transition-all duration-1000 ease-out ${
+            ctaInView ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+          }`}
+        >
+          {/* Pre-heading */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/25 bg-emerald-500/8 text-emerald-400 text-xs font-semibold mb-8 uppercase tracking-widest">
+            <Activity className="w-3.5 h-3.5" />
                 Live & Operational
               </div>
 
@@ -545,8 +543,8 @@ export default function LandingPage() {
                 </span>
               </div>
             </div>
-          );
-        })()}
+          </div>
+        </div>
       </section>
 
       {/* ── FOOTER ── */}
