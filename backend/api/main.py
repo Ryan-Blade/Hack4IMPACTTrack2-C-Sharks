@@ -254,7 +254,7 @@ app.add_middleware(
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
-@app.get("/")
+@app.get("/api/health")
 async def root():
     return {
         "name": "EcoSync API", "version": "1.0.0", "status": "operational",
