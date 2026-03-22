@@ -74,24 +74,7 @@ export default defineConfig(({ command }) => ({
   },
   build: {
     target: 'es2020',
-    rollupOptions: {
-      output: {
-        manualChunks(id) {
-          // Three.js + react-three ecosystem → separate chunk (~1.6 MB)
-          if (id.includes('three') || id.includes('@react-three')) {
-            return 'vendor-three';
-          }
-          // Recharts → separate chunk
-          if (id.includes('recharts') || id.includes('d3-')) {
-            return 'vendor-charts';
-          }
-          // React core
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'vendor-react';
-          }
-        },
-      },
-    },
+    chunkSizeWarningLimit: 1000,
   },
   preview: {
     proxy: {
