@@ -52,9 +52,15 @@ class EcoSyncBackend:
         
         self.running = True
         
-        # 1. Start IoT Simulator
+        # 1. Start API (if requested) First for Railway Healthchecks
+        if self.enable_api:
+            print("[1/3] Starting FastAPI Server...")
+            self._start_api_server()
+            time.sleep(1)  # Give uvicorn a brief moment to bind the port
+        
+        # 2. Start IoT Simulator
         if self.enable_simulator:
-            print("[1/3] Starting IoT Simulator...")
+            print("\n[2/3] Starting IoT Simulator...")
             self.simulator = BuildingClusterSimulator(
                 mqtt_broker=mqtt_config.broker_host,
                 mqtt_port=mqtt_config.broker_port,
@@ -68,7 +74,7 @@ class EcoSyncBackend:
             self.simulator.start()
             time.sleep(2)  # Let buildings connect
         
-        # 2. Start AI Orchestration
+        # 3. Start AI Orchestration
         if self.enable_ai:
             print("\n[2/3] Starting AI Trading Orchestration...")
             self.orchestrator = MultiAgentOrchestrator(
@@ -109,11 +115,6 @@ class EcoSyncBackend:
             self.orchestrator.set_trade_callback(self._on_trade)
             
             self.orchestrator.start()
-        
-        # 3. Start API (if requested)
-        if self.enable_api:
-            print("\n[3/3] Starting FastAPI Server...")
-            self._start_api_server()
         
         print("\n" + "="*70)
         print("  ✅ All services started successfully!")
@@ -237,7 +238,7 @@ def main():
     parser.add_argument("--no-ai", action="store_true", help="Disable AI orchestration")
     parser.add_argument("--no-api", action="store_true", help="Disable FastAPI server")
     parser.add_argument("--buildings", type=int, default=50, help="Number of buildings to simulate")
-    parser.add_argument("--mqtt-host", default="localhost", help="MQTT broker host")
+    parser.add_argument("--mqtt-host", default=os.getenv("MQTT_HOST", "broker.emqx.io"), help="MQTT broker host")
     parser.add_argument("--mqtt-port", type=int, default=1883, help="MQTT broker port")
     args = parser.parse_args()
     
