@@ -1,28 +1,14 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from 'sonner'
 import './index.css'
-import App from './App.tsx'
-import LandingPage from './pages/LandingPage.tsx'
-import IntroPage from './pages/IntroPage.tsx'
-import PostalMapView from './pages/PostalMapView.tsx'
+import AppShell from './AppShell'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 try {
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
       <ErrorBoundary>
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/intro" element={<IntroPage />} />
-            <Route path="/dashboard" element={<App />} />
-            <Route path="/globe" element={<PostalMapView />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </BrowserRouter>
-        <Toaster theme="dark" />
+        <AppShell />
       </ErrorBoundary>
     </StrictMode>,
   )
