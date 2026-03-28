@@ -8,6 +8,7 @@ import time
 from typing import Dict, List, Optional, Callable
 from datetime import datetime
 from enum import Enum
+import uuid
 
 import paho.mqtt.client as mqtt
 
@@ -67,7 +68,7 @@ class BuildingAgent:
         self.mqtt_broker = mqtt_broker or mqtt_config.broker_host
         self.mqtt_port = mqtt_port or mqtt_config.broker_port
         self.client = mqtt.Client(
-            client_id=f"agent_{building_id}",
+            client_id=f"agent_{building_id}_{uuid.uuid4().hex[:8]}",
             callback_api_version=mqtt.CallbackAPIVersion.VERSION1
         )
         self.client.on_connect = self._on_connect

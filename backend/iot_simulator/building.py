@@ -9,6 +9,7 @@ import threading
 import numpy as np
 from datetime import datetime
 from typing import Dict, Optional, Callable
+import uuid
 import paho.mqtt.client as mqtt
 
 from config.settings import mqtt_config
@@ -56,7 +57,7 @@ class SmartBuilding:
         
         # MQTT client
         self.client = mqtt.Client(
-            client_id=f"building_{building_id}",
+            client_id=f"building_{building_id}_{uuid.uuid4().hex[:8]}",
             callback_api_version=mqtt.CallbackAPIVersion.VERSION1
         )
         self.client.on_connect = self._on_connect

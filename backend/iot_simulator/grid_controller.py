@@ -7,6 +7,7 @@ import time
 import random
 import threading
 from typing import Optional, Callable, List
+import uuid
 import paho.mqtt.client as mqtt
 
 from config.settings import mqtt_config
@@ -43,7 +44,7 @@ class GridEventController:
         
         # MQTT client
         self.client = mqtt.Client(
-            client_id="grid_controller",
+            client_id=f"grid_controller_{uuid.uuid4().hex[:8]}",
             callback_api_version=mqtt.CallbackAPIVersion.VERSION1
         )
         self.client.on_connect = self._on_connect

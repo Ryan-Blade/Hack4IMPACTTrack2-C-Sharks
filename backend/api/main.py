@@ -15,6 +15,7 @@ from fastapi import FastAPI, BackgroundTasks, WebSocket, WebSocketDisconnect, HT
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import os
+import uuid
 
 from config.settings import mqtt_config, api_config
 
@@ -106,7 +107,7 @@ def broadcast_safe(msg: dict):
 
 # ── MQTT Client ────────────────────────────────────────────────────────────────
 mqtt_client = mqtt.Client(
-    client_id="fastapi_bridge",
+    client_id=f"fastapi_bridge_{uuid.uuid4().hex[:8]}",
     callback_api_version=mqtt.CallbackAPIVersion.VERSION1,
 )
 
