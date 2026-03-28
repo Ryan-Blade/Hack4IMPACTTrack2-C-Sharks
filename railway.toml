@@ -1,0 +1,9 @@
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "backend/Dockerfile"
+
+[deploy]
+startCommand = "python main.py --api --buildings 50"
+restartPolicyType = "ON_FAILURE"
+healthcheckPath = "/api/health"
+healthcheckPort = 8000
