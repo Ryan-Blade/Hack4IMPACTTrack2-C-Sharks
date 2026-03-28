@@ -180,20 +180,49 @@ class EcoSyncBackend:
     def _on_telemetry(self, telemetry: dict):
         """Handle building telemetry updates"""
         self.building_data[telemetry["building_id"]] = telemetry
+        if self.enable_api:
+            try:
+                import api.main as api_m
+                api_m.building_data[telemetry["building_id"]] = telemetry
+                api_m._analytics_cache_ts = 0.0
+                api_m.broadcast_safe({"type": "telemetry", "data": telemetry})
+            except Exception: pass
     
     def _on_grid_event(self, event: dict):
         """Handle grid events"""
-        pass  # Could add logging or special handling
+        if self.enable_api:
+            try:
+                import api.main as api_m
+                from datetime import datetime
+                event_data = {"timestamp": datetime.now().isoformat(), "event": event}
+                api_m.grid_events.append(event_data)
+                if event.get("type") == "price_update":
+                    api_m.market_data["current_price"] = event.get("price", 0.15)
+                api_m.broadcast_safe({"type": "grid_event", "data": event})
+            except Exception: pass
     
     def _on_agent_log(self, log_entry: dict):
         """Handle agent log messages"""
         self.agent_logs.append(log_entry)
         if len(self.agent_logs) > 500:
             self.agent_logs.pop(0)
+        if self.enable_api:
+            try:
+                import api.main as api_m
+                api_m.agent_logs.append(log_entry)
+                api_m.broadcast_safe({"type": "agent_log", "data": log_entry})
+            except Exception: pass
     
     def _on_trade(self, trade: dict):
         """Handle trade execution"""
-        pass  # Could add special handling
+        if self.enable_api:
+            try:
+                import api.main as api_m
+                api_m.trades.append(trade)
+                api_m.market_data["trades_today"] += 1
+                api_m.market_data["total_volume"] += trade.get("amount", 0)
+                api_m.broadcast_safe({"type": "trade", "data": trade})
+            except Exception: pass
     
     def stop(self):
         """Stop all backend services"""
