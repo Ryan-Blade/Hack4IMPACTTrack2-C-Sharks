@@ -24,3 +24,33 @@ env/
 # OS
 .DS_Store
 Thumbs.db
+
+# Large binary / media files (excluded from HF push)
+*.png
+*.webp
+*.pdf
+*.exe
+
+# Scratch / diff / log dumps (root-level only)
+*.diff
+diff.txt
+changes_since_yesterday.diff
+hqlog.txt
+hqlog_utf8.txt
+pdf_content.txt
+recent_files.txt
+root_files.txt
+branches.txt
+status.txt
+cloudflared.log
+hf_err.txt
+hf_err_node.txt
+
+# Temp / test files
+temp_repo/
+friend_repo_tmp/
+test_git*.py
+find_recent_files.py
+test_uvicorn_thread.py
+squash.js
+EcoSync_Migration*
