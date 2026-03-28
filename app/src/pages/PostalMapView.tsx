@@ -48,6 +48,56 @@ async function nominatimSearch(query: string) {
   return null;
 }
 
+// Extract the 50 largest/most detailed building polygons from OpenStreetMap
+async function fetchOSMBuildings(lat: number, lng: number) {
+  const delta = 0.015; // ~1.5km box around the pin
+  const bbox = `${lat - delta},${lng - delta},${lat + delta},${lng + delta}`;
+  const query = `
+    [out:json][timeout:25];
+    (way["building"](${bbox}););
+    out geom;
+  `;
+  try {
+    const res = await fetch('https://overpass-api.de/api/interpreter', {
+      method: 'POST',
+      body: query
+    });
+    const data = await res.json();
+    const elements = data.elements || [];
+    
+    // Sort by geometry length (proxy for complexity/size) and take top 50
+    const topElements = elements
+      .filter((e: any) => e.type === 'way' && e.geometry && e.geometry.length >= 3)
+      .sort((a: any, b: any) => b.geometry.length - a.geometry.length)
+      .slice(0, 50);
+      
+    // Convert to standard GeoJSON Features expected by CityGrid.tsx
+    return topElements.map((el: any) => {
+      const coordinates = [el.geometry.map((pt: any) => [pt.lon, pt.lat])];
+      let height = 15; // default fallback
+      if (el.tags?.height) height = parseFloat(el.tags.height);
+      else if (el.tags?.['building:levels']) height = parseInt(el.tags['building:levels']) * 3.5;
+
+      return {
+        type: "Feature",
+        properties: {
+          id: el.id,
+          height: height,
+          building_type: el.tags?.building || 'yes',
+          render_height: height
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: coordinates
+        }
+      };
+    });
+  } catch (e) {
+    console.error('OSM fetch error:', e);
+    return [];
+  }
+}
+
 let boundarySource: Cesium.DataSource | null = null;
 let pinEntity: Cesium.Entity | null = null;
 
@@ -254,11 +304,16 @@ export default function PostalMapView() {
     });
   }, [searchQuery]);
 
-  const handleStartSimulation = useCallback(() => {
+  const handleStartSimulation = useCallback(async () => {
+    setIsLoading(true);
+    // Scan OSM for realistic building extrusions
+    const geoBuildings = await fetchOSMBuildings(currentRegion.lat, currentRegion.lng);
+    
     navigate('/dashboard', {
       state: {
         coords: { lat: currentRegion.lat, lng: currentRegion.lng },
         regionName: currentRegion.name,
+        buildings: geoBuildings
       },
     });
   }, [navigate, currentRegion]);

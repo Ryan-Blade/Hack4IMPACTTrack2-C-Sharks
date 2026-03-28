@@ -1,4 +1,5 @@
-import { useMemo, memo } from 'react';
+import { useMemo, memo, useEffect, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   LineChart,
   Line,
@@ -201,6 +202,39 @@ export function AnalyticsDashboard({
   const criticalBuildings = useMemo(() => buildings.filter(b => b.is_critical), [buildings]);
   const netGridFlow = analytics?.net_grid_flow ?? 0;
   const gridEff = analytics?.grid_efficiency ?? 0;
+
+  // ─── Autonomous Thermal Fallback Logic ────────────────────────────────────
+  const fallbackTriggered = useRef(false);
+
+  useEffect(() => {
+    if (!analytics || !activePowerSources || !onTogglePowerSource) return;
+
+    // Trigger if total generation is less than 30% of total load and gas is inactive
+    const isDeficitCritical = (analytics.total_generation < analytics.total_load * 0.3) && (analytics.total_load > 0);
+    const isGasOff = !activePowerSources.gas;
+
+    if (isDeficitCritical && isGasOff) {
+      if (!fallbackTriggered.current) {
+        fallbackTriggered.current = true;
+        toast.warning(
+          "Grid deficit critical! Autonomous fallback engaged — firing up Natural Gas/Thermal plants", 
+          {
+            duration: 8000,
+            position: 'top-center',
+            style: { 
+              background: 'rgba(239, 68, 68, 0.2)', 
+              color: '#fca5a5', 
+              border: '1px solid #ef4444' 
+            }
+          }
+        );
+        onTogglePowerSource('gas');
+      }
+    } else if (!isDeficitCritical) {
+      // Reset trigger lock when grid recovers
+      fallbackTriggered.current = false;
+    }
+  }, [analytics, activePowerSources, onTogglePowerSource]);
 
   return (
     <div className="space-y-5 pb-4">
