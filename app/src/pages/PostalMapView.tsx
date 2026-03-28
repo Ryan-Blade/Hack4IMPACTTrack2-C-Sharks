@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import * as Cesium from 'cesium';
-import { Zap, ArrowRight, MapPin, Rocket } from 'lucide-react';
+import { Zap, ArrowRight, MapPin, Rocket, ArrowLeft, Crosshair } from 'lucide-react';
 
 const CESIUM_TOKEN = import.meta.env.VITE_CESIUM_TOKEN as string;
 if (CESIUM_TOKEN) {
@@ -340,6 +340,37 @@ export default function PostalMapView() {
           {error}
         </div>
       )}
+
+      {/* ── Floating Controls Layer ── */}
+      <div className="absolute top-8 left-8 right-8 z-50 flex justify-between pointer-events-none">
+        
+        {/* Left: Back Button */}
+        <button
+          onClick={() => navigate('/')}
+          className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B1526]/80 backdrop-blur-md border border-emerald-500/20 shadow-2xl text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all font-medium"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <span className="text-sm">Go Back</span>
+        </button>
+
+        {/* Right: Recenter Button */}
+        <button
+          onClick={() => {
+            if (viewerRef.current) {
+              viewerRef.current.camera.flyTo({
+                destination: Cesium.Cartesian3.fromDegrees(currentRegion.lng, currentRegion.lat, 2000),
+                orientation: { heading: 0, pitch: Cesium.Math.toRadians(-45), roll: 0 },
+                duration: 1.5,
+                easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+              });
+            }
+          }}
+          className="pointer-events-auto flex items-center justify-center w-11 h-11 rounded-xl bg-[#0B1526]/80 backdrop-blur-md border border-emerald-500/20 shadow-2xl text-emerald-400 hover:bg-emerald-500/10 hover:border-emerald-500/50 transition-all group"
+          title="Recenter Map"
+        >
+          <Crosshair className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
+        </button>
+      </div>
 
       {/* Top Center UI Widget - Exactly matching Screenshot 1 */}
       <div className="absolute top-8 left-1/2 -translate-x-1/2 z-50 w-[550px]">
