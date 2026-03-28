@@ -439,12 +439,17 @@ export default function LandingPage() {
 
               {/* THE only navigate-to-dashboard button */}
               <LiquidButton
-                onClick={() => navigate('/intro')}
+                onClick={async () => {
+                  try {
+                    await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:8000'}/api/simulation/start`, { method: 'POST' });
+                  } catch (e) { console.error('Failed to start simulation', e); }
+                  navigate('/globe');
+                }}
                 className="text-white border border-emerald-500/30 rounded-full bg-emerald-500/10 backdrop-blur-md hover:scale-105 transition-all shadow-xl shadow-emerald-500/20"
                 size={'xl'}
               >
                 <Zap className="w-5 h-5 mr-3 text-emerald-400 group-hover:animate-bounce" />
-                Launch EcoSync Dashboard
+                Start Simulation & Globe
                 <ArrowRight className="w-5 h-5 ml-3 group-hover:translate-x-1 transition-transform" />
               </LiquidButton>
             </div>

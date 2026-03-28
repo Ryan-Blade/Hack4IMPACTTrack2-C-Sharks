@@ -6,6 +6,7 @@ import './index.css'
 import App from './App.tsx'
 import LandingPage from './pages/LandingPage.tsx'
 import IntroPage from './pages/IntroPage.tsx'
+import PostalMapView from './pages/PostalMapView.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 try {
@@ -17,6 +18,7 @@ try {
             <Route path="/" element={<LandingPage />} />
             <Route path="/intro" element={<IntroPage />} />
             <Route path="/dashboard" element={<App />} />
+            <Route path="/globe" element={<PostalMapView />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </BrowserRouter>
