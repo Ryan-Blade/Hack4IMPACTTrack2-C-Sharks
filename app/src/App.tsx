@@ -165,7 +165,9 @@ function useAnalyticsPolling(interval: number = 5000) {
       try {
         // Fetch market status FIRST to include in history
         let currentMarketPrice = 0.15;
-        const marketRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/market/status`);
+        const _marketApiUrl = import.meta.env.VITE_API_URL || '';
+        const marketApiUrlFixed = _marketApiUrl.startsWith('http') || _marketApiUrl === '' ? _marketApiUrl : `https://${_marketApiUrl}`;
+        const marketRes = await fetch(`${marketApiUrlFixed}/api/market/status`);
         if (marketRes.ok) {
           const marketData = await marketRes.json();
           setMarketStatus(marketData);
@@ -173,7 +175,9 @@ function useAnalyticsPolling(interval: number = 5000) {
         }
 
         // Fetch analytics
-        const analyticsRes = await fetch(`${import.meta.env.VITE_API_URL || ''}/api/analytics/summary`);
+        const _analyticsApiUrl = import.meta.env.VITE_API_URL || '';
+        const analyticsApiUrlFixed = _analyticsApiUrl.startsWith('http') || _analyticsApiUrl === '' ? _analyticsApiUrl : `https://${_analyticsApiUrl}`;
+        const analyticsRes = await fetch(`${analyticsApiUrlFixed}/api/analytics/summary`);
         if (analyticsRes.ok) {
           const analyticsData = await analyticsRes.json();
           setAnalytics(analyticsData);
@@ -212,7 +216,8 @@ function App() {
   
   const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const defaultWsUrl = typeof window !== 'undefined' ? `${wsProtocol}//${window.location.host}/ws` : 'ws://localhost:8000/ws';
-  const wsUrl = import.meta.env.VITE_WS_URL || defaultWsUrl;
+  const rawWsUrl = import.meta.env.VITE_WS_URL || '';
+  const wsUrl = rawWsUrl.startsWith('ws') ? rawWsUrl : (rawWsUrl ? `wss://${rawWsUrl.replace('https://', '').replace('http://', '')}` : defaultWsUrl);
   const { connected, buildings, logs, gridEvents } = useWebSocket(wsUrl);
   const { analytics, marketStatus, history } = useAnalyticsPolling(5000);
   const [selectedBuilding, setSelectedBuilding] = useState<BuildingTelemetry | null>(null);
@@ -226,7 +231,9 @@ function App() {
 
   const triggerEvent = async (type: string, payload: any = {}) => {
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || ''}/api/grid/event`, {
+      const rawApiUrl = import.meta.env.VITE_API_URL || '';
+      const apiUrl = rawApiUrl.startsWith('http') || rawApiUrl === '' ? rawApiUrl : `https://${rawApiUrl}`;
+      await fetch(`${apiUrl}/api/grid/event`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ event_type: type, ...payload })

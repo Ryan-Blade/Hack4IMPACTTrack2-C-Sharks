@@ -269,7 +269,9 @@ export default function PostalMapView() {
   const handleStartSimulation = useCallback(async () => {
     // Wake up / Trigger backend simulation before jumping to the dashboard
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || ''}/api/simulation/start`, { method: 'POST' });
+      const pApi = import.meta.env.VITE_API_URL || '';
+      const fixedApi = pApi.startsWith('http') || pApi === '' ? pApi : `https://${pApi}`;
+      await fetch(`${fixedApi}/api/simulation/start`, { method: 'POST' });
     } catch (e) {
       console.warn('Simulation start trigger warning:', e);
     }
