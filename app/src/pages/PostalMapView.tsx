@@ -358,9 +358,9 @@ export default function PostalMapView() {
           onClick={() => {
             if (viewerRef.current) {
               viewerRef.current.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(currentRegion.lng, currentRegion.lat, 2000),
-                orientation: { heading: 0, pitch: Cesium.Math.toRadians(-45), roll: 0 },
-                duration: 1.5,
+                destination: Cesium.Cartesian3.fromDegrees(currentRegion.lng, currentRegion.lat, 20000000),
+                orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+                duration: 2.0,
                 easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
               });
             }
