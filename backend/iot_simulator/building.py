@@ -29,7 +29,9 @@ class SmartBuilding:
         base_load: float = 50.0,  # kW
         solar_capacity: float = 100.0,  # kW
         battery_capacity: float = 200.0,  # kWh
-        building_type: str = "residential"
+        building_type: str = "residential",
+        lat: float = 0.0,
+        lng: float = 0.0
     ):
         self.building_id = building_id
         self.mqtt_broker = mqtt_broker or mqtt_config.broker_host
@@ -40,6 +42,8 @@ class SmartBuilding:
         self.base_load = base_load
         self.solar_capacity = solar_capacity
         self.battery_capacity = battery_capacity
+        self.lat = lat
+        self.lng = lng
         
         # Current state
         self.current_load = base_load
@@ -308,6 +312,8 @@ class SmartBuilding:
             "is_critical": bool(self.is_critical),
             "is_priority": bool(self.is_priority),
             "building_type": self.building_type,
+            "lat": float(self.lat),
+            "lng": float(self.lng),
             "net_energy": float(round(self.solar_generation - self.current_load, 2))
         }
         
@@ -405,6 +411,8 @@ class SmartBuilding:
             "is_critical": bool(self.is_critical),
             "cloud_cover": bool(self.cloud_cover_active),
             "grid_failure": bool(self.grid_failure),
+            "lat": float(self.lat),
+            "lng": float(self.lng),
             "weather": getattr(self, 'current_weather', 'CLEAR'),
             "total_generated": float(round(self.total_energy_generated, 2)),
             "total_consumed": float(round(self.total_energy_consumed, 2)),

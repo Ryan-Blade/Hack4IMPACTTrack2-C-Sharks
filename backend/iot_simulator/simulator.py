@@ -38,13 +38,18 @@ class BuildingClusterSimulator:
         """Create diverse building types"""
         building_configs = []
         
+        base_lat = 28.6139
+        base_lng = 77.2090
+        
         # Hospital (Priority)
         building_configs.append({
             "id": 1,
             "type": "hospital",
             "base_load": 500.0,
             "solar": 300.0,
-            "battery": 2000.0
+            "battery": 2000.0,
+            "lat": base_lat + random.uniform(-0.02, 0.02),
+            "lng": base_lng + random.uniform(-0.02, 0.02)
         })
         
         # Data Center (Priority)
@@ -53,7 +58,9 @@ class BuildingClusterSimulator:
             "type": "datacenter",
             "base_load": 800.0,
             "solar": 400.0,
-            "battery": 3000.0
+            "battery": 3000.0,
+            "lat": base_lat + random.uniform(-0.02, 0.02),
+            "lng": base_lng + random.uniform(-0.02, 0.02)
         })
         
         # Emergency Services (Priority)
@@ -62,7 +69,9 @@ class BuildingClusterSimulator:
             "type": "emergency",
             "base_load": 200.0,
             "solar": 150.0,
-            "battery": 800.0
+            "battery": 800.0,
+            "lat": base_lat + random.uniform(-0.02, 0.02),
+            "lng": base_lng + random.uniform(-0.02, 0.02)
         })
         
         # Commercial buildings
@@ -72,7 +81,9 @@ class BuildingClusterSimulator:
                 "type": "commercial",
                 "base_load": random.uniform(100, 300),
                 "solar": random.uniform(50, 200),
-                "battery": random.uniform(200, 800)
+                "battery": random.uniform(200, 800),
+                "lat": base_lat + random.uniform(-0.02, 0.02),
+                "lng": base_lng + random.uniform(-0.02, 0.02)
             })
         
         # Residential buildings
@@ -82,7 +93,9 @@ class BuildingClusterSimulator:
                 "type": "residential",
                 "base_load": random.uniform(20, 80),
                 "solar": random.uniform(30, 100),
-                "battery": random.uniform(50, 300)
+                "battery": random.uniform(50, 300),
+                "lat": base_lat + random.uniform(-0.02, 0.02),
+                "lng": base_lng + random.uniform(-0.02, 0.02)
             })
         
         # Mixed use
@@ -92,7 +105,9 @@ class BuildingClusterSimulator:
                 "type": "mixed",
                 "base_load": random.uniform(50, 150),
                 "solar": random.uniform(40, 150),
-                "battery": random.uniform(100, 500)
+                "battery": random.uniform(100, 500),
+                "lat": base_lat + random.uniform(-0.02, 0.02),
+                "lng": base_lng + random.uniform(-0.02, 0.02)
             })
         
         # Create building objects
@@ -104,7 +119,9 @@ class BuildingClusterSimulator:
                 base_load=config["base_load"],
                 solar_capacity=config["solar"],
                 battery_capacity=config["battery"],
-                building_type=config["type"]
+                building_type=config["type"],
+                lat=config["lat"],
+                lng=config["lng"]
             )
             if self.telemetry_callback:
                 building.set_telemetry_callback(self.telemetry_callback)
