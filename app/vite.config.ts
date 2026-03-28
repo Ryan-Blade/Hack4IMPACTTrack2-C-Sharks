@@ -4,6 +4,7 @@ import { defineConfig } from "vite"
 import type { Plugin } from "vite"
 import { spawn, ChildProcess } from "child_process"
 import * as fs from "fs"
+import cesium from "vite-plugin-cesium"
 
 // ---------------------------------------------------------------------------
 // Auto-Backend Plugin
@@ -65,6 +66,7 @@ export default defineConfig(({ command }) => ({
   base: '/',
   plugins: [
     react(),
+    cesium(),
     ...(command === 'serve' ? [autoBackend()] : [])
   ],
   resolve: {
