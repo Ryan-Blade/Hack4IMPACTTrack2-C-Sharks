@@ -1,89 +1,46 @@
-import { useEffect, useRef } from 'react';
+import type { ReactNode } from 'react';
+import { DottedSurface } from '@/components/ui/dotted-surface';
 
-export function WebGLFooter() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    let width = canvas.offsetWidth;
-    let height = canvas.offsetHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    const onResize = () => {
-      width = canvas.offsetWidth;
-      height = canvas.offsetHeight;
-      canvas.width = width;
-      canvas.height = height;
-    };
-    window.addEventListener('resize', onResize);
-
-    // Simple fluid / aurora overlapping gradient animation
-    let time = 0;
-    const animate = () => {
-      time += 0.005;
-      ctx.clearRect(0, 0, width, height);
-
-      // Create a few moving gradient blobs
-      const blobs = [
-        { x: width * 0.2 + Math.sin(time) * 100, y: height * 0.5 + Math.cos(time * 0.8) * 50, r: 200, color: 'rgba(16, 185, 129, 0.15)' },
-        { x: width * 0.8 + Math.cos(time * 1.2) * 150, y: height * 0.4 + Math.sin(time * 0.5) * 80, r: 250, color: 'rgba(5, 150, 105, 0.15)' },
-        { x: width * 0.5 + Math.sin(time * 0.7) * 200, y: height * 0.8 + Math.cos(time * 1.1) * 60, r: 300, color: 'rgba(52, 211, 153, 0.1)' },
-      ];
-
-      blobs.forEach(blob => {
-        const radGrad = ctx.createRadialGradient(blob.x, blob.y, 0, blob.x, blob.y, blob.r);
-        radGrad.addColorStop(0, blob.color);
-        radGrad.addColorStop(1, 'transparent');
-        ctx.fillStyle = radGrad;
-        ctx.fillRect(0, 0, width, height);
-      });
-
-      requestAnimationFrame(animate);
-    };
-
-    animate();
-
-    return () => {
-      window.removeEventListener('resize', onResize);
-    };
-  }, []);
-
+export function WebGLFooter({ children }: { children?: ReactNode }) {
   return (
-    <footer className="relative w-full py-16 px-6 overflow-hidden border-t border-white/5 bg-slate-950 mt-20">
-      {/* WebGL Canvas Background */}
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full pointer-events-none opacity-80"
-      />
-      
-      {/* Footer Content Overlay */}
-      <div className="relative z-10 max-w-5xl mx-auto flex flex-col items-center justify-center text-center space-y-4">
-        <h3 className="text-emerald-400 font-bold tracking-widest uppercase text-sm mb-2 drop-shadow-md">
-          Simulating 50 buildings · LSTM · LangGraph · Polygon Mumbai
-        </h3>
-        <p className="text-slate-300 text-base md:text-lg font-medium flex items-center justify-center gap-2">
-          ⚡ EcoSync — Team C-Sharks
-        </p>
-        <div className="flex flex-wrap items-center justify-center gap-3 text-sm text-slate-500 font-light mt-4">
-          <span>KIIT DU</span>
-          <span>·</span>
-          <span>2026</span>
+    <section 
+      className="relative min-h-[500px] bg-zinc-950 overflow-hidden flex flex-col justify-between"
+    >
+      {/* Dotted surface fills the section */}
+      <DottedSurface className="absolute inset-0 w-full h-full" />
+
+      {/* Fade gradient: black from top so it blends into the section above */}
+      <div className="absolute top-0 left-0 right-0 h-[160px] bg-gradient-to-b from-black to-transparent z-10 pointer-events-none" />
+
+      {/* Children layer (e.g. Trust Indicators overlapping the animation) */}
+      <div className="relative z-20 w-full pt-6">
+        {children}
+      </div>
+
+      {/* Footer text sits on top, at the bottom */}
+      <footer className="relative w-full z-20 px-10 pb-8 flex flex-wrap justify-between items-center gap-6 text-xs text-white/40 border-t border-emerald-500/10 font-mono mt-auto">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-emerald-400 font-bold text-xs tracking-widest uppercase shadow-emerald-500/20 drop-shadow-lg">
+            Simulating 50 buildings · LSTM · LangGraph · Polygon Mumbai
+          </span>  
+          <span className="text-emerald-500 font-semibold text-sm">
+            ⚡ EcoSync — Team C-Sharks
+          </span>
+        </div>
+        
+        <div className="flex items-center gap-4 text-xs font-medium tracking-wider text-slate-400">
+          <span>KIIT DU · 2026</span>
           <span>·</span>
           <a
             href="https://github.com/ecosync-hackathon"
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-emerald-400 transition-colors duration-300 underline underline-offset-4 decoration-emerald-500/30"
+            className="hover:text-emerald-400 transition-colors duration-300 underline underline-offset-4 decoration-emerald-500/20"
           >
             github.com/ecosync-hackathon
           </a>
         </div>
-      </div>
-    </footer>
+      </footer>
+    </section>
   );
 }

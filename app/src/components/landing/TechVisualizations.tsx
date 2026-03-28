@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
+import { motion, AnimatePresence, useInView } from 'framer-motion';
 
 /* ─────────────────────────────────────────────
    Simulated Blockchain Transaction Data
@@ -71,8 +72,17 @@ export function LiveBlockchainFeed() {
     EMERGENCY_BUY: 'text-red-400 bg-red-500/10 border-red-500/30',
   };
 
+  const blockRef = useRef<HTMLDivElement>(null);
+  const blockInView = useInView(blockRef, { once: true, margin: '-60px' });
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-slate-900/60 backdrop-blur-md p-1">
+    <motion.div
+      ref={blockRef}
+      initial={{ opacity: 0, y: 40 }}
+      animate={blockInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+      className="relative overflow-hidden rounded-2xl border border-white/8 bg-slate-900/60 backdrop-blur-md p-1"
+    >
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-3 border-b border-white/8">
         <div className="flex items-center gap-3">
@@ -81,52 +91,65 @@ export function LiveBlockchainFeed() {
             <div className="absolute inset-0 w-2.5 h-2.5 bg-emerald-400 rounded-full animate-ping opacity-60" />
           </div>
           <span className="text-sm font-bold text-white">EcoToken Ledger</span>
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold">
-            LIVE
-          </span>
-        </div>
-        <div className="text-xs text-slate-500 font-mono">
-          Block #{blockNumber.toLocaleString()}
-        </div>
-      </div>
-
-      {/* Transaction List */}
-      <div className="divide-y divide-white/5 max-h-[340px] overflow-hidden">
-        {transactions.map((tx, i) => (
-          <div
-            key={tx.id + i}
-            className="px-5 py-3 flex items-center gap-4 transition-all duration-700 hover:bg-white/3"
-            style={{
-              animation: i === 0 ? 'slideInFromTop 0.5s ease-out' : undefined,
-              opacity: 1 - i * 0.1,
-            }}
+          <motion.span
+            className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-semibold"
+            animate={{ opacity: [1, 0.5, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
           >
-            {/* Type badge */}
-            <span className={`text-[9px] px-2 py-1 rounded-md border font-bold uppercase tracking-wider shrink-0 ${typeColors[tx.type]}`}>
-              {tx.type.replace('_', ' ')}
-            </span>
-
-            {/* From → To */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 text-xs">
-                <span className="text-slate-300 font-medium truncate">{tx.from}</span>
-                <svg className="w-3 h-3 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                </svg>
-                <span className="text-slate-300 font-medium truncate">{tx.to}</span>
-              </div>
-              <div className="text-[10px] text-slate-600 font-mono mt-0.5">{tx.hash}</div>
-            </div>
-
-            {/* Amount + Price */}
-            <div className="text-right shrink-0">
-              <div className="text-sm font-bold text-white">{tx.amount} kWh</div>
-              <div className="text-[10px] text-emerald-400 font-mono">${tx.price}/kWh</div>
-            </div>
-          </div>
-        ))}
+            LIVE
+          </motion.span>
+        </div>
+        <motion.div
+          className="text-xs text-slate-500 font-mono"
+          key={blockNumber}
+          initial={{ y: -8, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          Block #{blockNumber.toLocaleString()}
+        </motion.div>
       </div>
-    </div>
+
+      {/* Transaction List with AnimatePresence */}
+      <div className="divide-y divide-white/5 max-h-[340px] overflow-hidden">
+        <AnimatePresence mode="popLayout">
+          {transactions.map((tx, i) => (
+            <motion.div
+              key={tx.id}
+              layout
+              initial={{ opacity: 0, y: -24, scale: 0.97 }}
+              animate={{ opacity: 1 - i * 0.08, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 16, scale: 0.95 }}
+              transition={{ duration: 0.35, ease: 'easeOut' }}
+              className="px-5 py-3 flex items-center gap-4 hover:bg-white/[0.03] transition-colors"
+            >
+              {/* Type badge */}
+              <span className={`text-[9px] px-2 py-1 rounded-md border font-bold uppercase tracking-wider shrink-0 ${typeColors[tx.type]}`}>
+                {tx.type.replace('_', ' ')}
+              </span>
+
+              {/* From → To */}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 text-xs">
+                  <span className="text-slate-300 font-medium truncate">{tx.from}</span>
+                  <svg className="w-3 h-3 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                  </svg>
+                  <span className="text-slate-300 font-medium truncate">{tx.to}</span>
+                </div>
+                <div className="text-[10px] text-slate-600 font-mono mt-0.5">{tx.hash}</div>
+              </div>
+
+              {/* Amount + Price */}
+              <div className="text-right shrink-0">
+                <div className="text-sm font-bold text-white">{tx.amount} kWh</div>
+                <div className="text-[10px] text-emerald-400 font-mono">${tx.price}/kWh</div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </motion.div>
   );
 }
 
@@ -165,8 +188,17 @@ export function EnergyFlowDiagram() {
     { from: 4, to: 5 }, { from: 2, to: 3 },
   ], []);
 
+  const flowRef = useRef<HTMLDivElement>(null);
+  const flowInView = useInView(flowRef, { once: true, margin: '-60px' });
+
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/8 bg-slate-900/60 backdrop-blur-md p-6">
+    <motion.div
+      ref={flowRef}
+      initial={{ opacity: 0, y: 40 }}
+      animate={flowInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ duration: 0.6, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
+      className="relative overflow-hidden rounded-2xl border border-white/8 bg-slate-900/60 backdrop-blur-md p-6"
+    >
       <div className="flex items-center gap-3 mb-4">
         <div className="relative">
           <div className="w-2.5 h-2.5 bg-blue-400 rounded-full" />
@@ -266,7 +298,7 @@ export function EnergyFlowDiagram() {
           );
         })}
       </svg>
-    </div>
+    </motion.div>
   );
 }
 

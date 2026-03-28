@@ -1,11 +1,11 @@
 import { motion } from 'framer-motion';
 
 const problems = [
-  { id: 1, title: 'Wasted Surplus', text: 'Buildings generate solar power but lack a way to share surplus with neighbors, sending it back to the grid for pennies.', height: 200 },
-  { id: 2, title: 'Grid Blackouts', text: 'A single point of failure in traditional grid lines leads to neighborhood-wide blackouts.', height: 160 },
-  { id: 3, title: 'Zero Transparency', text: 'Residents have no real-time data on energy flow or their contribution to sustainability.', height: 180 },
-  { id: 4, title: 'No Peer trading', text: 'Energy monopolies restrict direct peer-to-peer energy trades.', height: 150 },
-  { id: 5, title: 'Inefficient Storage', text: 'Battery reserves are managed statically rather than predictively.', height: 190 },
+  { id: 1, title: 'Wasted Surplus', text: 'Buildings generate solar power but lack a way to share surplus with neighbors, sending it back to the grid for pennies.', height: 200, color: 'from-emerald-500/20 to-transparent' },
+  { id: 2, title: 'Grid Blackouts', text: 'A single point of failure in traditional grid lines leads to neighborhood-wide blackouts.', height: 160, color: 'from-amber-500/20 to-transparent' },
+  { id: 3, title: 'Zero Transparency', text: 'Residents have no real-time data on energy flow or their contribution to sustainability.', height: 180, color: 'from-blue-500/20 to-transparent' },
+  { id: 4, title: 'No Peer trading', text: 'Energy monopolies restrict direct peer-to-peer energy trades.', height: 150, color: 'from-purple-500/20 to-transparent' },
+  { id: 5, title: 'Inefficient Storage', text: 'Battery reserves are managed statically rather than predictively.', height: 190, color: 'from-rose-500/20 to-transparent' },
 ];
 
 export function MasonryProblemStatement() {
@@ -18,7 +18,7 @@ export function MasonryProblemStatement() {
            whileInView={{ opacity: 1, y: 0 }}
            viewport={{ once: true }}
            transition={{ duration: 0.6, delay: idx * 0.1 }}
-           className="break-inside-avoid bg-slate-900/50 backdrop-blur-md rounded-2xl p-6 border border-emerald-500/20 hover:border-emerald-500/50 transition-colors"
+           className={`break-inside-avoid bg-gradient-to-b ${item.color} backdrop-blur-md rounded-2xl p-6 border border-white/5 hover:border-white/20 transition-all shadow-lg`}
            style={{ minHeight: item.height }}
         >
            <h3 className="text-xl font-bold text-white mb-3">{item.title}</h3>

@@ -37,6 +37,8 @@ import type {
   GridEvent 
 } from '@/types';
 import './App.css';
+// @ts-expect-error - JSX module without type declarations
+import Particles from '@/components/Particles';
 
 // WebSocket connection hook
 function useWebSocket(url: string) {
@@ -232,6 +234,19 @@ function App() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans">
+      {/* Subtle particles background */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <Particles
+          particleColors={["#10b981", "#ffffff"]}
+          particleCount={50}
+          particleSpread={12}
+          speed={0.05}
+          particleBaseSize={80}
+          moveParticlesOnHover={false}
+          alphaParticles={true}
+          disableRotation={false}
+        />
+      </div>
       {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-xl border-b border-border shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
