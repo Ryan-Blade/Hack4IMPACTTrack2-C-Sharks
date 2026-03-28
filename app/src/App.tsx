@@ -17,6 +17,7 @@ import {
   ShieldAlert,
   DollarSign
 } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { CityGrid } from '@/components/threejs/CityGrid';
 import { AnalyticsDashboard } from '@/components/dashboard/AnalyticsDashboard';
 import { LogTerminal } from '@/components/terminal/LogTerminal';
@@ -206,6 +207,9 @@ function useAnalyticsPolling(interval: number = 5000) {
 
 // Main App Component
 function App() {
+  const location = useLocation();
+  const geoBuildings = location.state?.buildings || [];
+  
   const wsProtocol = typeof window !== 'undefined' && window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const defaultWsUrl = typeof window !== 'undefined' ? `${wsProtocol}//${window.location.host}/ws` : 'ws://localhost:8000/ws';
   const wsUrl = import.meta.env.VITE_WS_URL || defaultWsUrl;
@@ -370,7 +374,7 @@ function App() {
           {/* 3D City View */}
           <div className="flex-1 relative">
             <CityGrid 
-              buildings={buildings} 
+              buildings={buildings}
               onBuildingClick={setSelectedBuilding}
             />
             
