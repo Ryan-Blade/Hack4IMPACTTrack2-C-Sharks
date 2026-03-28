@@ -109,12 +109,12 @@ export default function PostalMapView() {
   const cesiumContainerRef = useRef<HTMLDivElement>(null);
   const viewerRef = useRef<Cesium.Viewer | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState(state?.country ?? 'New Delhi');
+  const [searchQuery, setSearchQuery] = useState(state?.country ?? '');
   const [currentRegion, setCurrentRegion] = useState(() => ({
-    name: state?.country ?? 'New Delhi',
-    fullDisplay: `${state?.country ?? 'New Delhi'}`,
-    lat: state?.coords.lat ?? 28.61,
-    lng: state?.coords.lng ?? 77.21,
+    name: state?.country ?? 'Global Network',
+    fullDisplay: state?.country ? `${state?.country}` : 'Select a region to start',
+    lat: state?.coords.lat ?? 20.0,
+    lng: state?.coords.lng ?? 0.0,
   }));
   const [isLoading, setIsLoading] = useState(false);
   const [isSimReady, setIsSimReady] = useState(false);
@@ -226,24 +226,36 @@ export default function PostalMapView() {
         } catch { /* ignore */ }
 
         // Initial fly-in
-        viewer.camera.flyTo({
-          destination: Cesium.Cartesian3.fromDegrees(currentRegion.lng, currentRegion.lat, 4000),
-          orientation: { heading: 0, pitch: Cesium.Math.toRadians(-50), roll: 0 },
-          duration: 3.0,
-          easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
-          complete: () => {
-            updateMapPin(viewer, currentRegion.lat, currentRegion.lng);
-            updateBoundary(viewer, currentRegion.lat, currentRegion.lng);
-            setIsSimReady(true);
-            
-            // Search Nominatim again to get full display name if coming from globe
-            if (state?.country) {
-               nominatimSearch(state.country).then((res) => {
-                   if (res) setCurrentRegion(prev => ({ ...prev, fullDisplay: res.displayName }));
-               });
+        if (state?.coords) {
+          viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(currentRegion.lng, currentRegion.lat, 4000),
+            orientation: { heading: 0, pitch: Cesium.Math.toRadians(-50), roll: 0 },
+            duration: 3.0,
+            easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+            complete: () => {
+              updateMapPin(viewer, currentRegion.lat, currentRegion.lng);
+              updateBoundary(viewer, currentRegion.lat, currentRegion.lng);
+              setIsSimReady(true);
+              
+              if (state?.country) {
+                 nominatimSearch(state.country).then((res) => {
+                     if (res) setCurrentRegion(prev => ({ ...prev, fullDisplay: res.displayName }));
+                 });
+              }
+            },
+          });
+        } else {
+          // Start in Global View if no coords passed
+          viewer.camera.flyTo({
+            destination: Cesium.Cartesian3.fromDegrees(0, 20, 25000000),
+            orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
+            duration: 2.0,
+            easingFunction: Cesium.EasingFunction.QUADRATIC_IN_OUT,
+            complete: () => {
+              setIsSimReady(false); // Must search a city to launch simulation
             }
-          },
-        });
+          });
+        }
 
       } catch (err) { console.error('Cesium map init failed:', err); }
     };
@@ -358,10 +370,19 @@ export default function PostalMapView() {
           onClick={() => {
             if (viewerRef.current) {
               viewerRef.current.camera.flyTo({
-                destination: Cesium.Cartesian3.fromDegrees(currentRegion.lng, currentRegion.lat, 20000000),
+                destination: Cesium.Cartesian3.fromDegrees(0, 20, 25000000),
                 orientation: { heading: 0, pitch: Cesium.Math.toRadians(-90), roll: 0 },
                 duration: 2.0,
                 easingFunction: Cesium.EasingFunction.CUBIC_IN_OUT,
+                complete: () => {
+                   if (pinEntity) viewerRef.current!.entities.remove(pinEntity);
+                   if (boundarySource) viewerRef.current!.dataSources.remove(boundarySource, true);
+                   boundarySource = null;
+                   pinEntity = null;
+                   setSearchQuery('');
+                   setCurrentRegion({ name: 'Global Network', fullDisplay: 'Select a region to start', lat: 20, lng: 0 });
+                   setIsSimReady(false);
+                }
               });
             }
           }}
@@ -448,7 +469,7 @@ export default function PostalMapView() {
         
         <p className="mt-3 text-[10px] text-emerald-500/60 font-mono tracking-wides">
           {(!isSimReady || isLoading) 
-            ? 'Scanning region...' 
+            ? (isLoading ? 'Scanning region...' : 'Type a location above to deploy grid') 
             : 'Fetching real building data from OpenStreetMap...'}
         </p>
       </div>
