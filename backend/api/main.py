@@ -254,6 +254,10 @@ app.add_middleware(
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
+@app.get("/")
+async def root_hf_probe():
+    return {"status": "running", "message": "EcoSync API Backend Active"}
+
 @app.get("/api/health")
 async def root():
     return {
