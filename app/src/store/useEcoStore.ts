@@ -32,6 +32,7 @@ export interface SimBuilding {
   isSelling: boolean
   isBuying: boolean
   isCritical: boolean
+  isDestroyed: boolean
 }
 
 export interface Trade {
@@ -132,6 +133,7 @@ function generateBuildings(): SimBuilding[] {
       isSelling: false,
       isBuying: false,
       isCritical: false,
+      isDestroyed: false,
     })
   }
   return buildings
@@ -159,8 +161,8 @@ function weatherMods(mode: WeatherMode) {
 
 interface EcoStore {
   // Navigation
-  appMode: 'home' | 'globe' | 'simulation'
-  setAppMode: (mode: 'home' | 'globe' | 'simulation') => void
+  appMode: 'home' | 'globe' | 'loading' | 'simulation'
+  setAppMode: (mode: 'home' | 'globe' | 'loading' | 'simulation') => void
 
   // Location
   activeLocation: ActiveLocation | null
@@ -183,6 +185,13 @@ interface EcoStore {
   selectedBuilding: SimBuilding | null
   setSelectedBuilding: (b: SimBuilding | null) => void
   toggleBuilding: (id: number) => void
+
+  // Nuclear Strike
+  nuclearMode: boolean
+  setNuclearMode: (val: boolean) => void
+  strikeTarget: SimBuilding | null
+  setStrikeTarget: (b: SimBuilding | null) => void
+  destroyBuilding: (id: number) => void
 
   // Balance
   gridStatus: 'OPTIMIZED' | 'WARNING' | 'CRITICAL'
@@ -253,12 +262,25 @@ export const useEcoStore = create<EcoStore>((set) => ({
   toggleBuilding: (id) =>
     set((state) => ({
       buildings: state.buildings.map((b) =>
-        b.id === id ? { ...b, active: !b.active } : b
+        b.id === id && !b.isDestroyed ? { ...b, active: !b.active } : b
       ),
       selectedBuilding:
         state.selectedBuilding?.id === id
           ? { ...state.selectedBuilding, active: !state.selectedBuilding.active }
           : state.selectedBuilding,
+    })),
+
+  // Nuclear Strike
+  nuclearMode: false,
+  setNuclearMode: (val) => set({ nuclearMode: val, strikeTarget: null }),
+  strikeTarget: null,
+  setStrikeTarget: (b) => set({ strikeTarget: b }),
+  destroyBuilding: (id) =>
+    set((state) => ({
+      buildings: state.buildings.map((b) =>
+        b.id === id ? { ...b, active: false, isDestroyed: true } : b
+      ),
+      strikeTarget: state.strikeTarget?.id === id ? null : state.strikeTarget,
     })),
 
   // Balance

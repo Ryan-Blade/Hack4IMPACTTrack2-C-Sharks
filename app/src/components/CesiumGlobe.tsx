@@ -66,7 +66,7 @@ export default function CesiumGlobe() {
   const handleLaunch = useCallback(() => {
     if (!selectedCity) return
     useEcoStore.setState({
-      appMode: 'simulation',
+      appMode: 'loading',
       activeLocation: selectedCity,
     })
   }, [selectedCity])

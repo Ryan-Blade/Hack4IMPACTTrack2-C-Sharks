@@ -1,4 +1,4 @@
-import { useEffect, useRef, useMemo, useCallback, Suspense } from 'react'
+import { useEffect, useRef, useMemo, useCallback, Suspense, useState } from 'react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { OrbitControls, Stars } from '@react-three/drei'
 import * as THREE from 'three'
@@ -70,33 +70,66 @@ function makeWindowTex(color: string, h: number): THREE.CanvasTexture {
    BUILDING COMPONENT — polished shapes
    ═══════════════════════════════════════════════════════ */
 function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b: SimBuilding) => void }) {
+  const activeLocation = useEcoStore(s => s.activeLocation)
   const meshRef = useRef<THREE.Group>(null)
   const seedRef = useRef(Math.random() * Math.PI * 2)
 
   const config = useMemo(() => {
+    let heightMod = 1.0;
+    let widthMod = 1.0;
+    
+    if (activeLocation) {
+      const locName = activeLocation.name;
+      if (['New York', 'Tokyo', 'Dubai', 'Singapore'].includes(locName)) {
+        heightMod = 2.0; widthMod = 0.8;
+      } else if (['Paris', 'London', 'Berlin'].includes(locName)) {
+        heightMod = 0.7; widthMod = 1.3;
+      } else if (['Mumbai', 'New Delhi', 'São Paulo'].includes(locName)) {
+        heightMod = 1.2; widthMod = 1.0;
+      } else {
+        heightMod = 1.0; widthMod = 1.1; // Default/Sprawling
+      }
+    }
+
     const t = building.type
-    const baseW = t === 'hospital' ? 1.5 : t === 'commercial' ? 0.85 : 0.65
-    const baseD = t === 'hospital' ? 1.1 : t === 'commercial' ? 0.85 : 0.65
-    const baseH = t === 'hospital' ? 2.2
+    const baseW = (t === 'hospital' ? 1.5 : t === 'commercial' ? 0.85 : 0.65) * widthMod
+    const baseD = (t === 'hospital' ? 1.1 : t === 'commercial' ? 0.85 : 0.65) * widthMod
+    const baseH = (t === 'hospital' ? 2.2
       : t === 'commercial' ? 1.6 + (building.id % 7) * 0.3
-      : 0.7 + (building.id % 5) * 0.2
+      : 0.7 + (building.id % 5) * 0.2) * heightMod
     const color = t === 'hospital' ? '#c93545' : t === 'commercial' ? '#2596be' : '#28a870'
     const emissive = t === 'hospital' ? '#8c1a25' : t === 'commercial' ? '#1a6080' : '#1a704a'
     const winColor = t === 'hospital' ? '#ff8888' : t === 'commercial' ? '#66ccee' : '#77ddaa'
     return { w: baseW, d: baseD, h: baseH, color, emissive, winColor }
-  }, [building.type, building.id])
+  }, [building.type, building.id, activeLocation])
 
   const windowTex = useMemo(() => makeWindowTex(config.winColor, config.h), [config.winColor, config.h])
 
   useFrame((state) => {
     if (!meshRef.current) return
     const t = state.clock.elapsedTime
-    if (building.active && building.isCritical) {
+    if (building.active && building.isCritical && !building.isDestroyed) {
       meshRef.current.scale.setScalar(1 + Math.sin(t * 4 + seedRef.current) * 0.03)
     }
   })
 
   const emI = building.active ? (building.isCritical ? 0.8 : 0.35) : 0.03
+
+  if (building.isDestroyed) {
+    return (
+      <group position={[building.x, 0, building.z]} rotation={[0, building.rotY, 0]}>
+        <mesh position={[0, 0.3, 0]} rotation={[Math.random(), Math.random(), 0]}>
+          <icosahedronGeometry args={[config.w * 0.7, 0]} />
+          <meshStandardMaterial color="#1a1a1a" emissive="#551100" emissiveIntensity={0.6} roughness={1} />
+        </mesh>
+        <mesh position={[config.w * 0.3, 0.15, config.d * 0.3]}>
+          <boxGeometry args={[config.w * 0.5, 0.3, config.d * 0.5]} />
+          <meshStandardMaterial color="#2a2a2a" roughness={1} />
+        </mesh>
+        <pointLight position={[0, 0.5, 0]} color="#FF6B00" intensity={2} distance={3} />
+      </group>
+    )
+  }
 
   return (
     <group position={[building.x, 0, building.z]} rotation={[0, building.rotY, 0]}>
@@ -501,8 +534,36 @@ function WeatherEffects() {
       </bufferGeometry>
       <pointsMaterial
         color={weatherMode === 'storm' ? '#88bbff' : weatherMode === 'blizzard' ? '#fff' : '#aaddff'}
-        size={weatherMode === 'blizzard' ? 0.1 : 0.06} transparent opacity={0.5} sizeAttenuation />
+        size={weatherMode === 'blizzard' ? 0.3 : weatherMode === 'storm' ? 0.2 : 0.06} 
+        transparent opacity={0.6} sizeAttenuation />
     </points>
+  )
+}
+
+function CloudSystem() {
+  const wm = useEcoStore(s => s.weatherMode)
+  const ref = useRef<THREE.Group>(null)
+
+  useFrame((state) => {
+    if (ref.current) {
+      ref.current.position.x += (wm === 'storm' || wm === 'wind' ? 0.05 : 0.01)
+      if (ref.current.position.x > 40) ref.current.position.x = -60
+    }
+  })
+
+  if (wm !== 'storm' && wm !== 'overcast' && wm !== 'blizzard') return null
+
+  const cloudColor = wm === 'storm' ? '#112233' : wm === 'blizzard' ? '#ddeeff' : '#445566'
+
+  return (
+    <group ref={ref} position={[-40, 18, -10]}>
+      {[0, 1, 2, 3, 4, 5, 6].map(i => (
+        <mesh key={i} position={[i * 12 + Math.random() * 5, Math.random() * 4, Math.random() * 20 - 10]}>
+          <icosahedronGeometry args={[5 + Math.random() * 4, 1]} />
+          <meshStandardMaterial color={cloudColor} transparent opacity={0.6} roughness={1} />
+        </mesh>
+      ))}
+    </group>
   )
 }
 
@@ -539,17 +600,88 @@ function EnergyParticles() {
 }
 
 /* ═══════════════════════════════════════════════════════
+   NUCLEAR STRIKE COMPONENT
+   ═══════════════════════════════════════════════════════ */
+function NuclearStrike() {
+  const target = useEcoStore(s => s.strikeTarget)
+  const destroyBuilding = useEcoStore(s => s.destroyBuilding)
+  const [active, setActive] = useState(false)
+  const rocketRef = useRef<THREE.Mesh>(null)
+  const blastRef = useRef<THREE.Mesh>(null)
+  
+  useEffect(() => {
+    if (target && !active) {
+      setActive(true)
+      if (blastRef.current) {
+        blastRef.current.scale.setScalar(0.1)
+        const mat = blastRef.current.material as THREE.MeshBasicMaterial
+        mat.opacity = 1
+      }
+      if (rocketRef.current) rocketRef.current.position.set(target.x, 40, target.z)
+    }
+  }, [target, active])
+
+  useFrame((state, delta) => {
+    if (active && target) {
+      if (rocketRef.current && rocketRef.current.position.y > 0) {
+        rocketRef.current.position.y -= delta * 50 // High speed
+        if (rocketRef.current.position.y <= 0) {
+          rocketRef.current.position.y = -100 // Hide rocket
+          if (blastRef.current) blastRef.current.position.set(target.x, 0, target.z)
+        }
+      } else if (blastRef.current && blastRef.current.position.y === 0) {
+        blastRef.current.scale.addScalar(delta * 25)
+        const mat = blastRef.current.material as THREE.MeshBasicMaterial
+        mat.opacity -= delta * 1.0
+        if (mat.opacity <= 0) {
+          mat.opacity = 0
+          blastRef.current.position.y = -100
+          setActive(false)
+          destroyBuilding(target.id)
+        }
+      }
+    }
+  })
+
+  if (!active || !target) return null
+
+  return (
+    <group>
+      <mesh ref={rocketRef} position={[target.x, 40, target.z]}>
+        <cylinderGeometry args={[0.3, 0.3, 2.5, 8]} />
+        <meshStandardMaterial color="#222" emissive="#FF0000" emissiveIntensity={2} />
+      </mesh>
+      <mesh ref={blastRef} position={[0, -100, 0]}>
+        <sphereGeometry args={[1, 32, 32]} />
+        <meshBasicMaterial color="#FF4400" transparent opacity={1} blending={THREE.AdditiveBlending} />
+      </mesh>
+    </group>
+  )
+}
+
+/* ═══════════════════════════════════════════════════════
    SCENE AMBIENT
    ═══════════════════════════════════════════════════════ */
 function SceneSetup() {
   const { scene } = useThree()
   const wm = useEcoStore(s => s.weatherMode)
+  const ambientRef = useRef<THREE.AmbientLight>(null)
 
   useEffect(() => { scene.fog = new THREE.FogExp2('#060D1A', 0.006) }, [scene])
 
+  useFrame(() => {
+    if (wm === 'storm' && ambientRef.current) {
+      if (Math.random() > 0.985) {
+        ambientRef.current.intensity = 3.5;
+      } else {
+        ambientRef.current.intensity = THREE.MathUtils.lerp(ambientRef.current.intensity, 0.4, 0.1);
+      }
+    }
+  })
+
   return (
     <>
-      <ambientLight intensity={wm === 'storm' ? 0.4 : wm === 'heatwave' ? 0.8 : wm === 'overcast' ? 0.5 : 0.7}
+      <ambientLight ref={ambientRef} intensity={wm === 'storm' ? 0.4 : wm === 'heatwave' ? 0.8 : wm === 'overcast' ? 0.5 : 0.7}
         color={wm === 'heatwave' ? '#FF8844' : '#ffffff'} />
       <directionalLight position={[10, 25, 10]} intensity={1.2} color="#ffffff" />
       <directionalLight position={[-8, 15, -8]} intensity={0.4} color="#88aaff" />
@@ -566,7 +698,16 @@ function SceneSetup() {
 function Scene() {
   const buildings = useEcoStore(s => s.buildings)
   const setSel = useEcoStore(s => s.setSelectedBuilding)
-  const handleClick = useCallback((b: SimBuilding) => setSel(b), [setSel])
+  const setStrikeTarget = useEcoStore(s => s.setStrikeTarget)
+  const nuclearMode = useEcoStore(s => s.nuclearMode)
+
+  const handleClick = useCallback((b: SimBuilding) => {
+    if (nuclearMode) {
+      if (!b.isDestroyed) setStrikeTarget(b)
+    } else {
+      setSel(b)
+    }
+  }, [setSel, nuclearMode, setStrikeTarget])
 
   return (
     <>
@@ -580,6 +721,8 @@ function Scene() {
       <PowerNode type="hydro" position={[-16, 0, 16]} />
       <PowerNode type="gas" position={[16, 0, 16]} />
       <WeatherEffects />
+      <CloudSystem />
+      <NuclearStrike />
       <OrbitControls minPolarAngle={0.3} maxPolarAngle={1.4} minDistance={5} maxDistance={45}
         enableDamping dampingFactor={0.05} />
     </>
@@ -755,6 +898,7 @@ function HUD() {
    ═══════════════════════════════════════════════════════ */
 export default function SimulationApp() {
   const selectedBuilding = useEcoStore(s => s.selectedBuilding)
+  const nuclearMode = useEcoStore(s => s.nuclearMode)
 
   useEffect(() => {
     const s = useEcoStore.getState()
@@ -765,7 +909,11 @@ export default function SimulationApp() {
   useAutoBalance()
 
   return (
-    <div style={{ width:'100vw', height:'100vh', position:'relative', background:'#060D1A' }}>
+    <div style={{ 
+      width:'100vw', height:'100vh', position:'relative', 
+      background:'#060D1A', 
+      cursor: nuclearMode ? 'crosshair' : 'default' 
+    }}>
       <Canvas camera={{ position:[20,15,20], fov:45 }} dpr={[1,1.5]} performance={{ min:0.5 }}
         style={{ width:'100%', height:'100%' }}>
         <Suspense fallback={null}>
@@ -774,7 +922,7 @@ export default function SimulationApp() {
       </Canvas>
       <HUD />
       <SidePanel />
-      {selectedBuilding && <BuildingPopup />}
+      {selectedBuilding && !nuclearMode && <BuildingPopup />}
       <style>{`@keyframes simPulse{0%,100%{opacity:1}50%{opacity:.3}}`}</style>
     </div>
   )

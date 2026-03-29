@@ -15,6 +15,8 @@ export default function SidePanel() {
   const weatherMode = useEcoStore((s) => s.weatherMode)
   const setWeather = useEcoStore((s) => s.setWeather)
   const loc = useEcoStore((s) => s.activeLocation)
+  const nuclearMode = useEcoStore((s) => s.nuclearMode)
+  const setNuclearMode = useEcoStore((s) => s.setNuclearMode)
   const [godOpen, setGodOpen] = useState(false)
 
   if (!panelOpen) return null
@@ -181,23 +183,39 @@ export default function SidePanel() {
       </button>
 
       {godOpen && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
-          {weatherOptions.map((w) => (
-            <button key={w.mode}
-              onClick={() => setWeather(w.mode)}
-              style={{
-                padding: '8px 10px', borderRadius: 8,
-                background: weatherMode === w.mode ? 'rgba(124,107,255,0.15)' : 'rgba(255,255,255,0.02)',
-                border: `1px solid ${weatherMode === w.mode ? 'rgba(124,107,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
-                color: weatherMode === w.mode ? '#7C6BFF' : 'rgba(255,255,255,0.5)',
-                fontFamily: mono, fontSize: 10, cursor: 'pointer',
-                textAlign: 'left', transition: 'all 0.2s',
-              }}
-            >
-              {w.icon} {w.label}
-            </button>
-          ))}
-        </div>
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginTop: 8 }}>
+            {weatherOptions.map((w) => (
+              <button key={w.mode}
+                onClick={() => setWeather(w.mode)}
+                style={{
+                  padding: '8px 10px', borderRadius: 8,
+                  background: weatherMode === w.mode ? 'rgba(124,107,255,0.15)' : 'rgba(255,255,255,0.02)',
+                  border: `1px solid ${weatherMode === w.mode ? 'rgba(124,107,255,0.4)' : 'rgba(255,255,255,0.06)'}`,
+                  color: weatherMode === w.mode ? '#7C6BFF' : 'rgba(255,255,255,0.5)',
+                  fontFamily: mono, fontSize: 10, cursor: 'pointer',
+                  textAlign: 'left', transition: 'all 0.2s',
+                }}
+              >
+                {w.icon} {w.label}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setNuclearMode(!nuclearMode)}
+            style={{
+              width: '100%', padding: '10px 14px', borderRadius: 8, marginTop: 8,
+              background: nuclearMode ? 'rgba(255,68,68,0.2)' : 'rgba(255,68,68,0.05)',
+              border: `1px solid ${nuclearMode ? '#FF4444' : 'rgba(255,68,68,0.2)'}`,
+              color: '#FF4444', fontFamily: mono, fontSize: 11, fontWeight: 'bold',
+              cursor: 'pointer', textAlign: 'center', transition: 'all 0.2s',
+              boxShadow: nuclearMode ? '0 0 15px rgba(255,68,68,0.4)' : 'none',
+            }}
+          >
+            {nuclearMode ? '☢️ TARGET LOCKED... CLICK BUILDING ☢️' : '☢️ NUCLEAR STRIKE MODE ☢️'}
+          </button>
+        </>
       )}
 
       <style>{`
