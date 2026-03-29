@@ -127,12 +127,12 @@ export default function SidePanel() {
                 {src.output.toFixed(1)} <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.4)' }}>kW</span>
               </div>
               {/* Bar */}
-              <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', marginTop: 6 }}>
+              <div style={{ height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.06)', marginTop: 6, overflow: 'hidden' }}>
                 <div style={{
                   height: '100%', borderRadius: 2,
-                  width: `${(src.output / src.max) * 100}%`,
+                  width: `${Math.min(100, (src.output / Math.max(0.1, src.max)) * 100)}%`,
                   background: key === 'gas' && src.output > 30
-                    ? `linear-gradient(90deg, #00F5A0 ${(30 / src.max) * 100}%, #FF6B00 100%)`
+                    ? `linear-gradient(90deg, #00F5A0 ${Math.min(100, (30 / src.max) * 100)}%, #FF6B00 100%)`
                     : src.color,
                   transition: 'width 0.5s',
                 }} />

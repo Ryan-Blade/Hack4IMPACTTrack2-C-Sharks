@@ -46,17 +46,17 @@ function GridFloor() {
    ═══════════════════════════════════════════════════════ */
 function makeWindowTex(color: string, h: number): THREE.CanvasTexture {
   const c = document.createElement('canvas')
-  c.width = 64; c.height = 128
+  c.width = 128; c.height = 256
   const ctx = c.getContext('2d')!
-  ctx.fillStyle = '#0c1a2e'
-  ctx.fillRect(0, 0, 64, 128)
-  const rows = Math.max(3, Math.floor(h * 4))
+  ctx.fillStyle = '#000000'
+  ctx.fillRect(0, 0, 128, 256)
+  const rows = Math.max(4, Math.floor(h * 6))
+  const cols = 6
   for (let y = 0; y < rows; y++) {
-    for (let x = 0; x < 3; x++) {
-      if (Math.random() > 0.2) {
-        const bright = Math.random() > 0.5 ? color : '#1a3050'
-        ctx.fillStyle = bright
-        ctx.fillRect(8 + x * 18, 6 + y * (120 / rows), 12, Math.min(10, 120 / rows - 3))
+    for (let x = 0; x < cols; x++) {
+      if (Math.random() > 0.4) {
+        ctx.fillStyle = Math.random() > 0.8 ? '#ffffff' : color
+        ctx.fillRect(8 + x * 19, 10 + y * (240 / rows), 14, Math.min(18, 240 / rows - 4))
       }
     }
   }
@@ -72,7 +72,6 @@ function makeWindowTex(color: string, h: number): THREE.CanvasTexture {
 function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b: SimBuilding) => void }) {
   const activeLocation = useEcoStore(s => s.activeLocation)
   const meshRef = useRef<THREE.Group>(null)
-  const seedRef = useRef(Math.random() * Math.PI * 2)
 
   const config = useMemo(() => {
     let heightMod = 1.0;
@@ -97,23 +96,14 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
     const baseH = (t === 'hospital' ? 2.2
       : t === 'commercial' ? 1.6 + (building.id % 7) * 0.3
       : 0.7 + (building.id % 5) * 0.2) * heightMod
-    const color = t === 'hospital' ? '#c93545' : t === 'commercial' ? '#2596be' : '#28a870'
-    const emissive = t === 'hospital' ? '#8c1a25' : t === 'commercial' ? '#1a6080' : '#1a704a'
-    const winColor = t === 'hospital' ? '#ff8888' : t === 'commercial' ? '#66ccee' : '#77ddaa'
-    return { w: baseW, d: baseD, h: baseH, color, emissive, winColor }
+    const color = t === 'hospital' ? '#cbd5e1' : t === 'commercial' ? '#475569' : '#94a3b8'
+    const winColor = t === 'hospital' ? '#fde047' : t === 'commercial' ? '#fef08a' : '#ffedd5'
+    return { w: baseW, d: baseD, h: baseH, color, winColor }
   }, [building.type, building.id, activeLocation])
 
   const windowTex = useMemo(() => makeWindowTex(config.winColor, config.h), [config.winColor, config.h])
 
-  useFrame((state) => {
-    if (!meshRef.current) return
-    const t = state.clock.elapsedTime
-    if (building.active && building.isCritical && !building.isDestroyed) {
-      meshRef.current.scale.setScalar(1 + Math.sin(t * 4 + seedRef.current) * 0.03)
-    }
-  })
-
-  const emI = building.active ? (building.isCritical ? 0.8 : 0.35) : 0.03
+  const emI = building.active ? (building.isCritical ? 1.5 : 0.8) : 0.1
 
   if (building.isDestroyed) {
     return (
@@ -144,9 +134,10 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
               onPointerOut={() => document.body.style.cursor = 'auto'}
             >
               <boxGeometry args={[config.w, config.h, config.d]} />
-              <meshStandardMaterial color={config.color} emissive={config.emissive} emissiveIntensity={emI}
-                map={windowTex} roughness={0.6} metalness={0.2}
-                transparent={!building.active} opacity={building.active ? 1 : 0.2} />
+              <meshStandardMaterial color={config.color} 
+                emissive={building.isCritical ? "#ff4444" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
+                roughness={0.7} metalness={0.2}
+                transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
             {/* Pitched roof */}
             <mesh position={[0, config.h + 0.2, 0]} rotation={[0, 0, 0]}>
@@ -171,9 +162,10 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
               onPointerOut={() => document.body.style.cursor = 'auto'}
             >
               <boxGeometry args={[config.w, config.h, config.d]} />
-              <meshStandardMaterial color={config.color} emissive={config.emissive} emissiveIntensity={emI}
-                map={windowTex} roughness={0.15} metalness={0.85}
-                transparent={!building.active} opacity={building.active ? 1 : 0.2} />
+              <meshStandardMaterial color={config.color} 
+                emissive={building.isCritical ? "#ff4444" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
+                roughness={0.3} metalness={0.5}
+                transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
             {/* Roof crown — stepped setback */}
             <mesh position={[0, config.h + 0.08, 0]}>
@@ -210,15 +202,16 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
               onPointerOut={() => document.body.style.cursor = 'auto'}
             >
               <boxGeometry args={[config.w, config.h, config.d]} />
-              <meshStandardMaterial color={config.color} emissive={config.emissive} emissiveIntensity={emI}
-                map={windowTex} roughness={0.5} metalness={0.3}
-                transparent={!building.active} opacity={building.active ? 1 : 0.2} />
+              <meshStandardMaterial color={config.color} 
+                emissive={building.isCritical ? "#ff4444" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
+                roughness={0.5} metalness={0.2}
+                transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
             {/* Side wing (L-shape) */}
             <mesh position={[config.w * 0.55, config.h * 0.35, config.d * 0.15]}>
               <boxGeometry args={[config.w * 0.5, config.h * 0.7, config.d * 0.7]} />
-              <meshStandardMaterial color={config.color} emissive={config.emissive} emissiveIntensity={emI}
-                roughness={0.5} metalness={0.3} transparent={!building.active} opacity={building.active ? 1 : 0.2} />
+              <meshStandardMaterial color={config.color} 
+                roughness={0.5} metalness={0.2} transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
             {/* Flat roof */}
             <mesh position={[0, config.h + 0.03, 0]}>
@@ -245,7 +238,7 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
         {/* Ground plate */}
         <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <planeGeometry args={[config.w + 0.3, config.d + 0.3]} />
-          <meshBasicMaterial color={config.emissive} transparent opacity={building.active ? 0.12 : 0.03} />
+          <meshBasicMaterial color="#000000" transparent opacity={building.active ? 0.2 : 0.03} />
         </mesh>
 
         {/* Battery bar */}
@@ -737,16 +730,17 @@ function useAutoBalance() {
     const id = setInterval(() => {
       const s = useEcoStore.getState()
       if (!s.buildings.length || !s.powerSources.solar) return
-      const solarO = s.powerSources.solar.active ? s.powerSources.solar.max * s.weatherMod.solar : 0
-      const windO = s.powerSources.wind.active ? s.powerSources.wind.max * s.weatherMod.wind : 0
-      const hydroO = s.powerSources.hydro.active ? s.powerSources.hydro.max * s.weatherMod.hydro : 0
+      const solarO = s.powerSources.solar.active ? s.powerSources.solar.max * s.weatherMod.solar * 3.5 : 0
+      const windO = s.powerSources.wind.active ? s.powerSources.wind.max * s.weatherMod.wind * 3.5 : 0
+      const hydroO = s.powerSources.hydro.active ? s.powerSources.hydro.max * s.weatherMod.hydro * 3.5 : 0
       const renewable = solarO + windO + hydroO
-      const demand = s.buildings.filter(b => b.active).reduce((a, b) => a + b.consumption_kw, 0)
-      const shortage = demand - (renewable + 30)
-      const gasO = s.powerSources.gas.active ? Math.min(70, 30 + Math.max(0, shortage)) : 0
+      let demand = s.buildings.filter(b => b.active).reduce((a, b) => a + b.consumption_kw, 0)
+      demand = demand * 0.35 + Math.sin(Date.now() / 3000) * 20
+      const shortage = demand - renewable
+      const gasO = s.powerSources.gas.active ? Math.max(0, Math.min(70, shortage)) : 0
       const supply = renewable + gasO
       const balance = supply - demand
-      const status = balance < -10 ? 'CRITICAL' : balance < 0 ? 'WARNING' : 'OPTIMIZED'
+      const status = balance < -500 ? 'CRITICAL' : balance < -200 ? 'WARNING' : 'OPTIMIZED'
 
       useEcoStore.setState(prev => ({
         powerSources: {

@@ -111,6 +111,21 @@ function generatePositions(count = 50): [number, number][] {
    Building Generator
    ═══════════════════════════════════════════ */
 
+export type BuildingType = 'residential' | 'commercial' | 'hospital'
+
+const initialHistory = Array.from({ length: 25 }).map((_, i) => {
+  const t = Date.now() - (25 - i) * 2000
+  const baseD = 180 + Math.sin(t / 5000) * 40 + Math.random() * 10
+  const baseS = baseD + 80 + Math.random() * 30
+  return {
+    time: new Date(t).toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' }),
+    supply: +baseS.toFixed(1),
+    demand: +baseD.toFixed(1),
+    traditionalLoad: +(baseD * 1.6 + Math.random() * 20).toFixed(1),
+    avgPrice: +(0.03 + Math.random() * 0.01).toFixed(3)
+  }
+})
+
 function generateBuildings(): SimBuilding[] {
   const positions = generatePositions(50)
   const rotations = [0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4]
@@ -311,7 +326,7 @@ export const useEcoStore = create<EcoStore>((set) => ({
     })),
 
   // History & Analytics
-  history: [],
+  history: initialHistory,
   addHistoryPoint: (pt) =>
     set((state) => {
       const newHist = [...state.history, pt]
