@@ -33,6 +33,10 @@ export interface SimBuilding {
   isBuying: boolean
   isCritical: boolean
   isDestroyed: boolean
+  // Real-world footprint data (optional, from OSM)
+  footprintW?: number
+  footprintD?: number
+  floors?: number
 }
 
 export interface Trade {
@@ -163,6 +167,125 @@ function generateBuildings(): SimBuilding[] {
 }
 
 /* ═══════════════════════════════════════════
+   OSM Overpass API — fetch real building data
+   ═══════════════════════════════════════════ */
+
+async function fetchOSMBuildings(lat: number, lng: number): Promise<SimBuilding[]> {
+  const radius = 250 // metres — smaller = faster response
+  const query = `[out:json][timeout:6];way["building"](around:${radius},${lat},${lng});out body geom;`
+  const url = `https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), 5000) // 5s hard timeout
+  const resp = await fetch(url, { signal: ctrl.signal })
+  clearTimeout(timer)
+  if (!resp.ok) throw new Error('Overpass API failed')
+  const data = await resp.json()
+
+  const elements = (data.elements || []).filter((el: any) => el.geometry && el.geometry.length >= 3)
+  if (elements.length < 10) throw new Error('Not enough buildings found')
+
+  // Pick up to 50
+  const picked = elements.slice(0, 50)
+
+  // Compute centroid of all buildings for coordinate normalization
+  let cLat = 0, cLng = 0
+  picked.forEach((el: any) => {
+    const g = el.geometry
+    const mLat = g.reduce((a: number, p: any) => a + p.lat, 0) / g.length
+    const mLng = g.reduce((a: number, p: any) => a + p.lon, 0) / g.length
+    cLat += mLat; cLng += mLng
+  })
+  cLat /= picked.length; cLng /= picked.length
+
+  // Scale factor: 1 degree lat ≈ 111320m, convert to ~30-unit grid
+  const mPerDeg = 111320
+  const gridRadius = 15 // half the grid size
+  const maxDist = radius / mPerDeg // max distance in degrees
+  const scale = gridRadius / maxDist
+
+  const buildings: SimBuilding[] = []
+  const rotations = [0, Math.PI / 4, Math.PI / 2, (Math.PI * 3) / 4]
+
+  picked.forEach((el: any, i: number) => {
+    const g = el.geometry
+    const tags = el.tags || {}
+
+    // Bounding box of footprint
+    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity
+    g.forEach((p: any) => {
+      if (p.lat < minLat) minLat = p.lat
+      if (p.lat > maxLat) maxLat = p.lat
+      if (p.lon < minLng) minLng = p.lon
+      if (p.lon > maxLng) maxLng = p.lon
+    })
+
+    // Centroid of this building
+    const bLat = (minLat + maxLat) / 2
+    const bLng = (minLng + maxLng) / 2
+
+    // Convert to grid coords
+    const x = (bLng - cLng) * scale * Math.cos(cLat * Math.PI / 180)
+    const z = -(bLat - cLat) * scale
+
+    // Footprint dimensions in meters, then scale to grid units
+    const widthM = (maxLng - minLng) * mPerDeg * Math.cos(bLat * Math.PI / 180)
+    const depthM = (maxLat - minLat) * mPerDeg
+    const footprintScale = scale / mPerDeg
+    const footprintW = Math.max(0.4, Math.min(3.0, widthM * footprintScale * 1.5))
+    const footprintD = Math.max(0.4, Math.min(3.0, depthM * footprintScale * 1.5))
+
+    // Floors from tags
+    const rawLevels = parseInt(tags['building:levels'] || tags.levels || '0')
+    const rawHeight = parseFloat(tags.height || '0')
+    let floors = rawLevels || (rawHeight ? Math.round(rawHeight / 3) : 0)
+    if (!floors) floors = Math.floor(Math.random() * 6) + 1 // random 1-6
+
+    // Determine type from OSM tags
+    let type: 'residential' | 'commercial' | 'hospital' = 'residential'
+    const bType = (tags.building || '').toLowerCase()
+    const amenity = (tags.amenity || '').toLowerCase()
+    if (amenity === 'hospital' || amenity === 'clinic' || amenity === 'doctors') {
+      type = 'hospital'
+    } else if (['commercial', 'office', 'retail', 'industrial', 'warehouse', 'supermarket'].includes(bType) ||
+               ['shop', 'marketplace'].includes(amenity)) {
+      type = 'commercial'
+    } else if (['apartments', 'house', 'residential', 'detached', 'terrace', 'dormitory'].includes(bType)) {
+      type = 'residential'
+    } else {
+      // Mixed assignment for variety
+      type = i % 5 === 0 ? 'hospital' : i % 2 === 0 ? 'commercial' : 'residential'
+    }
+
+    const typeIdx = i
+    const consumption = type === 'hospital' ? 30 + Math.random() * 20
+      : type === 'commercial' ? 15 + Math.random() * 15
+      : 5 + Math.random() * 10
+
+    buildings.push({
+      id: i,
+      name: pickName(type, typeIdx),
+      type,
+      x: +x.toFixed(2),
+      z: +z.toFixed(2),
+      rotY: rotations[Math.floor(Math.random() * 4)],
+      consumption_kw: parseFloat(consumption.toFixed(1)),
+      solar_kw: parseFloat((Math.random() * 12 + 3).toFixed(1)),
+      battery_soc: parseFloat((Math.random() * 80 + 20).toFixed(1)),
+      active: true,
+      isSelling: false,
+      isBuying: false,
+      isCritical: false,
+      isDestroyed: false,
+      footprintW,
+      footprintD,
+      floors,
+    })
+  })
+
+  return buildings
+}
+
+/* ═══════════════════════════════════════════
    Weather Modifiers
    ═══════════════════════════════════════════ */
 
@@ -194,6 +317,7 @@ interface EcoStore {
   // Simulation
   buildings: SimBuilding[]
   initBuildings: () => void
+  fetchAndInitBuildings: (lat: number, lng: number) => Promise<void>
 
   powerSources: Record<string, PowerSource>
   initSources: () => void
@@ -252,6 +376,15 @@ export const useEcoStore = create<EcoStore>((set) => ({
   // Simulation
   buildings: [],
   initBuildings: () => set({ buildings: generateBuildings() }),
+  fetchAndInitBuildings: async (lat: number, lng: number) => {
+    try {
+      const buildings = await fetchOSMBuildings(lat, lng)
+      set({ buildings })
+    } catch (e) {
+      console.warn('OSM fetch failed, using procedural fallback:', e)
+      set({ buildings: generateBuildings() })
+    }
+  },
 
   powerSources: {},
   initSources: () =>

@@ -74,6 +74,9 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
   const meshRef = useRef<THREE.Group>(null)
 
   const config = useMemo(() => {
+    // Use OSM footprint data if available, otherwise fall back to type-based sizing
+    const hasFootprint = building.footprintW !== undefined && building.footprintD !== undefined
+
     let heightMod = 1.0;
     let widthMod = 1.0;
     
@@ -86,21 +89,33 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
       } else if (['Mumbai', 'New Delhi', 'São Paulo'].includes(locName)) {
         heightMod = 1.2; widthMod = 1.0;
       } else {
-        heightMod = 1.0; widthMod = 1.1; // Default/Sprawling
+        heightMod = 1.0; widthMod = 1.1;
       }
     }
 
     const t = building.type
-    const baseW = (t === 'hospital' ? 1.5 : t === 'commercial' ? 0.85 : 0.65) * widthMod
-    const baseD = (t === 'hospital' ? 1.1 : t === 'commercial' ? 0.85 : 0.65) * widthMod
-    const baseH = (t === 'hospital' ? 2.2
-      : t === 'commercial' ? 1.6 + (building.id % 7) * 0.3
-      : 0.7 + (building.id % 5) * 0.2) * heightMod
+    let baseW: number, baseD: number, baseH: number
+
+    if (hasFootprint) {
+      // Use real footprint data from OSM
+      baseW = building.footprintW! * widthMod
+      baseD = building.footprintD! * widthMod
+      const floorCount = building.floors || (Math.floor(Math.random() * 4) + 1)
+      baseH = (floorCount * 0.45) * heightMod // Each floor ~0.45 grid units
+      baseH = Math.max(0.5, Math.min(6.0, baseH)) // Clamp
+    } else {
+      baseW = (t === 'hospital' ? 1.5 : t === 'commercial' ? 0.85 : 0.65) * widthMod
+      baseD = (t === 'hospital' ? 1.1 : t === 'commercial' ? 0.85 : 0.65) * widthMod
+      baseH = (t === 'hospital' ? 2.2
+        : t === 'commercial' ? 1.6 + (building.id % 7) * 0.3
+        : 0.7 + (building.id % 5) * 0.2) * heightMod
+    }
+
     // Warm brick/tan for hospitals so they don't look awkwardly white
     const color = t === 'hospital' ? '#a56c5e' : t === 'commercial' ? '#475569' : '#94a3b8'
     const winColor = t === 'hospital' ? '#fde047' : t === 'commercial' ? '#fef08a' : '#ffedd5'
     return { w: baseW, d: baseD, h: baseH, color, winColor }
-  }, [building.type, building.id, activeLocation])
+  }, [building.type, building.id, building.footprintW, building.footprintD, building.floors, activeLocation])
 
   const windowTex = useMemo(() => makeWindowTex(config.winColor, config.h), [config.winColor, config.h])
 
@@ -342,149 +357,237 @@ function PowerNode({ type, position }: { type: string; position: [number, number
       onPointerOut={() => document.body.style.cursor = 'auto'}
     >
       {/* Concrete pad */}
-      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[2, 32]} />
-        <meshStandardMaterial color="#1a2030" roughness={0.95} />
+      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[2.2, 48]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.95} />
       </mesh>
       {/* Perimeter ring */}
-      <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[1.9, 2.1, 32]} />
-        <meshBasicMaterial color={c.main} transparent opacity={active ? 0.2 : 0.04} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
+      <mesh position={[0, 0.04, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[2.05, 2.2, 48]} />
+        <meshBasicMaterial color={c.main} transparent opacity={active ? 0.25 : 0.05} blending={THREE.AdditiveBlending} side={THREE.DoubleSide} />
       </mesh>
 
-      {/* ── SOLAR ── */}
+      {/* ── SOLAR FARM ── */}
       {type === 'solar' && (
-        <>
-          {/* Support pole */}
-          <mesh position={[0, 0.5, 0]}>
-            <cylinderGeometry args={[0.06, 0.08, 1, 8]} />
-            <meshStandardMaterial color="#555" roughness={0.8} />
+        <group>
+          {/* Ground-mount support frames */}
+          {[-0.7, 0, 0.7].map(xOff => (
+            <group key={xOff} position={[xOff, 0, 0]}>
+              {/* Support legs */}
+              <mesh position={[-0.35, 0.25, 0]}>
+                <cylinderGeometry args={[0.02, 0.03, 0.5, 6]} />
+                <meshStandardMaterial color="#71717a" metalness={0.7} roughness={0.4} />
+              </mesh>
+              <mesh position={[0.35, 0.25, 0]}>
+                <cylinderGeometry args={[0.02, 0.03, 0.5, 6]} />
+                <meshStandardMaterial color="#71717a" metalness={0.7} roughness={0.4} />
+              </mesh>
+              {/* Crossbar */}
+              <mesh position={[0, 0.48, 0]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.015, 0.015, 0.8, 6]} />
+                <meshStandardMaterial color="#71717a" metalness={0.7} roughness={0.4} />
+              </mesh>
+              {/* Solar panel (tilted) */}
+              <group position={[0, 0.55, 0]} rotation={[-0.45, 0, 0]}>
+                <mesh>
+                  <boxGeometry args={[0.65, 0.02, 0.9]} />
+                  <meshStandardMaterial color="#1e1b4b" emissive="#FFD700" emissiveIntensity={active ? 0.2 : 0.01}
+                    roughness={0.05} metalness={0.95} />
+                </mesh>
+                {/* Cell grid lines */}
+                {[-0.2, 0, 0.2].map(gz => (
+                  <mesh key={gz} position={[0, 0.012, gz]}>
+                    <boxGeometry args={[0.62, 0.003, 0.008]} />
+                    <meshBasicMaterial color="#334155" />
+                  </mesh>
+                ))}
+              </group>
+            </group>
+          ))}
+          {/* Central inverter box */}
+          <mesh position={[0, 0.2, 1.2]}>
+            <boxGeometry args={[0.35, 0.4, 0.25]} />
+            <meshStandardMaterial color="#374151" metalness={0.5} roughness={0.6} />
           </mesh>
-          {/* Panel frame (tilted) */}
-          <group position={[0, 1.05, 0]} rotation={[-0.5, 0, 0]}>
-            {/* Frame */}
-            <mesh>
-              <boxGeometry args={[2.2, 0.05, 1.4]} />
-              <meshStandardMaterial color="#2a2a2a" roughness={0.3} metalness={0.8} />
-            </mesh>
-            {/* Panel cells (2 rows) */}
-            {[-0.3, 0.3].map(zOff => (
-              <mesh key={zOff} position={[0, 0.03, zOff]}>
-                <boxGeometry args={[2.0, 0.02, 0.5]} />
-                <meshStandardMaterial color="#1a1a44" emissive={c.main} emissiveIntensity={active ? 0.5 : 0.03}
-                  roughness={0.05} metalness={0.95} />
-              </mesh>
-            ))}
-            {/* Grid lines on panel */}
-            {[-0.8, -0.4, 0, 0.4, 0.8].map(x => (
-              <mesh key={x} position={[x, 0.04, 0]}>
-                <boxGeometry args={[0.01, 0.01, 1.3]} />
-                <meshBasicMaterial color="#333" />
-              </mesh>
-            ))}
-          </group>
-        </>
+          {/* Indicator LED */}
+          <mesh position={[0, 0.35, 1.34]}>
+            <sphereGeometry args={[0.025, 8, 8]} />
+            <meshBasicMaterial color={active ? '#22c55e' : '#71717a'} />
+          </mesh>
+        </group>
       )}
 
-      {/* ── WIND ── */}
+      {/* ── WIND TURBINE ── */}
       {type === 'wind' && (
-        <>
-          {/* Tower */}
-          <mesh position={[0, 2.0, 0]}>
-            <cylinderGeometry args={[0.08, 0.14, 4, 8]} />
-            <meshStandardMaterial color="#d0d0d0" roughness={0.4} metalness={0.6} />
+        <group>
+          {/* Foundation base ring */}
+          <mesh position={[0, 0.1, 0]}>
+            <cylinderGeometry args={[0.35, 0.4, 0.2, 16]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.8} />
           </mesh>
-          {/* Nacelle */}
-          <mesh position={[0, 4.05, 0.1]}>
-            <boxGeometry args={[0.25, 0.2, 0.5]} />
-            <meshStandardMaterial color="#e8e8e8" roughness={0.3} metalness={0.7} />
+          {/* Tower — tapered steel tube */}
+          <mesh position={[0, 2.2, 0]}>
+            <cylinderGeometry args={[0.06, 0.16, 4.2, 12]} />
+            <meshStandardMaterial color="#e2e8f0" roughness={0.3} metalness={0.7} />
           </mesh>
-          {/* Hub */}
-          <mesh position={[0, 4.05, 0.38]}>
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshStandardMaterial color="#ccc" metalness={0.9} />
+          {/* Nacelle housing */}
+          <mesh position={[0, 4.35, 0.15]}>
+            <boxGeometry args={[0.22, 0.22, 0.6]} />
+            <meshStandardMaterial color="#f1f5f9" roughness={0.25} metalness={0.8} />
           </mesh>
-          {/* Blades */}
-          <group ref={bladeRef} position={[0, 4.05, 0.42]}>
+          {/* Nacelle rear cap */}
+          <mesh position={[0, 4.35, -0.18]}>
+            <sphereGeometry args={[0.11, 8, 8, 0, Math.PI]} />
+            <meshStandardMaterial color="#e2e8f0" roughness={0.3} metalness={0.7} />
+          </mesh>
+          {/* Hub / nose cone */}
+          <mesh position={[0, 4.35, 0.5]} rotation={[Math.PI / 2, 0, 0]}>
+            <coneGeometry args={[0.1, 0.2, 12]} />
+            <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
+          </mesh>
+          {/* Blades — realistic tapered */}
+          <group ref={bladeRef} position={[0, 4.35, 0.52]}>
             {[0, 120, 240].map(deg => (
-              <mesh key={deg} rotation={[0, 0, (deg * Math.PI) / 180]} position={[0, 0, 0]}>
-                <boxGeometry args={[1.8, 0.08, 0.03]} />
-                <meshStandardMaterial color="#f0f0f0" roughness={0.3} />
-              </mesh>
+              <group key={deg} rotation={[0, 0, (deg * Math.PI) / 180]}>
+                {/* Blade root */}
+                <mesh position={[0.5, 0, 0]}>
+                  <boxGeometry args={[1.0, 0.1, 0.04]} />
+                  <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.3} />
+                </mesh>
+                {/* Blade tip */}
+                <mesh position={[1.3, 0, 0]}>
+                  <boxGeometry args={[0.6, 0.06, 0.025]} />
+                  <meshStandardMaterial color="#f1f5f9" roughness={0.2} metalness={0.3} />
+                </mesh>
+              </group>
             ))}
           </group>
-        </>
+          {/* Aviation warning light */}
+          <mesh position={[0, 4.5, 0]}>
+            <sphereGeometry args={[0.03, 8, 8]} />
+            <meshBasicMaterial color={active ? '#ef4444' : '#52525b'} />
+          </mesh>
+        </group>
       )}
 
-      {/* ── HYDRO ── */}
+      {/* ── HYDRO DAM ── */}
       {type === 'hydro' && (
-        <>
-          {/* Dam wall */}
+        <group>
+          {/* Dam wall — curved concrete */}
           <mesh position={[0, 0.6, 0]}>
-            <boxGeometry args={[2.5, 1.2, 0.6]} />
-            <meshStandardMaterial color="#556677" roughness={0.85} metalness={0.1} />
+            <boxGeometry args={[2.8, 1.3, 0.5]} />
+            <meshStandardMaterial color="#64748b" roughness={0.9} metalness={0.05} />
           </mesh>
-          {/* Water behind dam */}
-          <mesh position={[0, 0.5, -0.5]}>
-            <boxGeometry args={[2.2, 0.8, 0.6]} />
-            <meshStandardMaterial color="#1a4488" emissive={c.main} emissiveIntensity={active ? 0.3 : 0.02}
-              transparent opacity={0.7} roughness={0.1} />
+          {/* Dam top walkway */}
+          <mesh position={[0, 1.3, 0]}>
+            <boxGeometry args={[3.0, 0.06, 0.6]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.85} />
           </mesh>
-          {/* Spillway */}
-          <mesh position={[0, 0.3, 0.4]}>
-            <boxGeometry args={[0.6, 0.3, 0.2]} />
-            <meshStandardMaterial color={c.main} emissive={c.main} emissiveIntensity={active ? 0.4 : 0.02}
-              transparent opacity={0.6} />
+          {/* Walkway railing posts */}
+          {[-1.2, -0.6, 0, 0.6, 1.2].map(xp => (
+            <mesh key={xp} position={[xp, 1.45, 0.25]}>
+              <cylinderGeometry args={[0.01, 0.01, 0.3, 4]} />
+              <meshStandardMaterial color="#94a3b8" metalness={0.6} />
+            </mesh>
+          ))}
+          {/* Reservoir water */}
+          <mesh position={[0, 0.4, -0.6]}>
+            <boxGeometry args={[2.5, 0.6, 0.7]} />
+            <meshStandardMaterial color="#0c4a6e" emissive="#0088FF" emissiveIntensity={active ? 0.2 : 0.02}
+              transparent opacity={0.8} roughness={0.05} metalness={0.3} />
           </mesh>
+          {/* Spillway channels */}
+          {[-0.4, 0.4].map(xp => (
+            <mesh key={xp} position={[xp, 0.2, 0.35]}>
+              <boxGeometry args={[0.25, 0.15, 0.3]} />
+              <meshStandardMaterial color="#0088FF" emissive="#0088FF" emissiveIntensity={active ? 0.5 : 0.02}
+                transparent opacity={0.65} />
+            </mesh>
+          ))}
           {/* Generator house */}
-          <mesh position={[0, 0.3, 0.8]}>
-            <boxGeometry args={[1.0, 0.6, 0.5]} />
-            <meshStandardMaterial color="#445566" roughness={0.8} />
+          <mesh position={[0, 0.35, 0.9]}>
+            <boxGeometry args={[1.2, 0.7, 0.6]} />
+            <meshStandardMaterial color="#475569" roughness={0.85} />
           </mesh>
-          {/* Roof */}
-          <mesh position={[0, 0.65, 0.8]}>
-            <boxGeometry args={[1.1, 0.06, 0.6]} />
-            <meshStandardMaterial color="#334455" />
+          {/* Generator house roof */}
+          <mesh position={[0, 0.75, 0.9]}>
+            <boxGeometry args={[1.3, 0.05, 0.7]} />
+            <meshStandardMaterial color="#334155" roughness={0.8} />
           </mesh>
-        </>
+          {/* Transmission tower */}
+          <mesh position={[0.8, 0.9, 0.9]}>
+            <cylinderGeometry args={[0.02, 0.03, 1.0, 6]} />
+            <meshStandardMaterial color="#a1a1aa" metalness={0.7} />
+          </mesh>
+        </group>
       )}
 
-      {/* ── GAS FACTORY ── */}
+      {/* ── GAS POWER PLANT ── */}
       {type === 'gas' && (
-        <group position={[0, -0.05, 0]}>
-          {/* Main factory building */}
-          <mesh position={[0, 0.4, 0]}>
-            <boxGeometry args={[1.5, 0.8, 1.2]} />
-            <meshStandardMaterial color="#475569" roughness={0.8} />
+        <group>
+          {/* Main turbine hall */}
+          <mesh position={[0, 0.45, 0]}>
+            <boxGeometry args={[1.6, 0.9, 1.3]} />
+            <meshStandardMaterial color="#475569" roughness={0.85} />
           </mesh>
-          {/* Secondary building */}
-          <mesh position={[0.8, 0.3, -0.2]}>
-            <boxGeometry args={[0.8, 0.6, 0.8]} />
-            <meshStandardMaterial color="#334155" roughness={0.9} />
+          {/* Turbine hall roof (slightly pitched) */}
+          <mesh position={[0, 0.95, 0]}>
+            <boxGeometry args={[1.7, 0.06, 1.4]} />
+            <meshStandardMaterial color="#334155" roughness={0.8} />
           </mesh>
-          {/* Main Boiler / Tank */}
-          <mesh position={[-0.9, 0.6, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.4, 0.4, 1.2, 16]} />
-            <meshStandardMaterial color="#64748b" metalness={0.6} roughness={0.4} />
+          {/* Control room annex */}
+          <mesh position={[1.0, 0.35, 0]}>
+            <boxGeometry args={[0.7, 0.7, 0.9]} />
+            <meshStandardMaterial color="#374151" roughness={0.9} />
           </mesh>
-          {/* Large Smokestack */}
-          <mesh position={[0.4, 1.5, 0.3]}>
-            <cylinderGeometry args={[0.15, 0.2, 3.0, 12]} />
-            <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+          <mesh position={[1.0, 0.74, 0]}>
+            <boxGeometry args={[0.75, 0.04, 0.95]} />
+            <meshStandardMaterial color="#1f2937" roughness={0.8} />
           </mesh>
-          {/* Small Smokestack */}
-          <mesh position={[0.1, 1.2, 0.3]}>
-            <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
-            <meshStandardMaterial color="#94a3b8" roughness={0.7} />
+          {/* Horizontal gas tank */}
+          <mesh position={[-1.1, 0.5, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.35, 0.35, 1.0, 16]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.65} roughness={0.35} />
           </mesh>
-          {/* Cooling Tower / Flare stack */}
-          <mesh position={[-0.2, 1.0, -0.4]}>
-            <cylinderGeometry args={[0.05, 0.05, 2.0, 8]} />
-            <meshStandardMaterial color="#475569" metalness={0.4} />
+          {/* Tank end caps */}
+          <mesh position={[-1.1, 0.05, 0]}>
+            <sphereGeometry args={[0.35, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.65} roughness={0.35} />
+          </mesh>
+          {/* Tank saddle supports */}
+          {[-0.9, -1.3].map(xp => (
+            <mesh key={xp} position={[xp, 0.1, 0]}>
+              <boxGeometry args={[0.06, 0.2, 0.5]} />
+              <meshStandardMaterial color="#52525b" roughness={0.8} />
+            </mesh>
+          ))}
+          {/* Large smokestack */}
+          <mesh position={[0.3, 1.6, 0.4]}>
+            <cylinderGeometry args={[0.12, 0.18, 2.4, 12]} />
+            <meshStandardMaterial color="#d4d4d8" roughness={0.6} />
+          </mesh>
+          {/* Smokestack top ring */}
+          <mesh position={[0.3, 2.82, 0.4]}>
+            <torusGeometry args={[0.13, 0.02, 8, 16]} />
+            <meshStandardMaterial color="#a1a1aa" metalness={0.6} />
+          </mesh>
+          {/* Secondary stack */}
+          <mesh position={[-0.2, 1.3, 0.4]}>
+            <cylinderGeometry args={[0.06, 0.09, 1.8, 8]} />
+            <meshStandardMaterial color="#cbd5e1" roughness={0.65} />
+          </mesh>
+          {/* Pipe network */}
+          <mesh position={[-0.5, 0.5, 0.55]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.03, 0.03, 0.7, 6]} />
+            <meshStandardMaterial color="#a1a1aa" metalness={0.7} roughness={0.3} />
+          </mesh>
+          <mesh position={[-0.5, 0.5, 0.2]} rotation={[0, 0, 0]}>
+            <cylinderGeometry args={[0.03, 0.03, 0.6, 6]} />
+            <meshStandardMaterial color="#a1a1aa" metalness={0.7} roughness={0.3} />
           </mesh>
           {/* Flame glow when active */}
           {active && (
-            <pointLight position={[-0.2, 2.1, -0.4]} color="#FF6B00" intensity={2.5} distance={6} />
+            <pointLight position={[0.3, 2.9, 0.4]} color="#FF6B00" intensity={2} distance={5} />
           )}
         </group>
       )}
@@ -918,7 +1021,14 @@ export default function SimulationApp() {
 
   useEffect(() => {
     const s = useEcoStore.getState()
-    if (!s.buildings.length) s.initBuildings()
+    if (!s.buildings.length) {
+      const loc = s.activeLocation
+      if (loc && loc.lat && loc.lng) {
+        s.fetchAndInitBuildings(loc.lat, loc.lng)
+      } else {
+        s.initBuildings()
+      }
+    }
     if (!s.powerSources.solar) s.initSources()
   }, [])
 
