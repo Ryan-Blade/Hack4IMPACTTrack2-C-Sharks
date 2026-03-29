@@ -96,14 +96,16 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
     const baseH = (t === 'hospital' ? 2.2
       : t === 'commercial' ? 1.6 + (building.id % 7) * 0.3
       : 0.7 + (building.id % 5) * 0.2) * heightMod
-    const color = t === 'hospital' ? '#cbd5e1' : t === 'commercial' ? '#475569' : '#94a3b8'
+    // Warm brick/tan for hospitals so they don't look awkwardly white
+    const color = t === 'hospital' ? '#a56c5e' : t === 'commercial' ? '#475569' : '#94a3b8'
     const winColor = t === 'hospital' ? '#fde047' : t === 'commercial' ? '#fef08a' : '#ffedd5'
     return { w: baseW, d: baseD, h: baseH, color, winColor }
   }, [building.type, building.id, activeLocation])
 
   const windowTex = useMemo(() => makeWindowTex(config.winColor, config.h), [config.winColor, config.h])
 
-  const emI = building.active ? (building.isCritical ? 1.5 : 0.8) : 0.1
+  // Critical buildings show dim emergency lights instead of blazing neon
+  const emI = building.active ? (building.isCritical ? 0.35 : 0.8) : 0.05
 
   if (building.isDestroyed) {
     return (
@@ -135,7 +137,7 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
             >
               <boxGeometry args={[config.w, config.h, config.d]} />
               <meshStandardMaterial color={config.color} 
-                emissive={building.isCritical ? "#ff4444" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
+                emissive={building.isCritical ? "#ff8844" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
                 roughness={0.7} metalness={0.2}
                 transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
@@ -163,7 +165,7 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
             >
               <boxGeometry args={[config.w, config.h, config.d]} />
               <meshStandardMaterial color={config.color} 
-                emissive={building.isCritical ? "#ff4444" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
+                emissive={building.isCritical ? "#ff8844" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
                 roughness={0.3} metalness={0.5}
                 transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
@@ -203,7 +205,7 @@ function Building3D({ building, onClick }: { building: SimBuilding; onClick: (b:
             >
               <boxGeometry args={[config.w, config.h, config.d]} />
               <meshStandardMaterial color={config.color} 
-                emissive={building.isCritical ? "#ff4444" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
+                emissive={building.isCritical ? "#ff8844" : "#ffffff"} emissiveIntensity={emI} emissiveMap={windowTex}
                 roughness={0.5} metalness={0.2}
                 transparent={!building.active} opacity={building.active ? 1 : 1.0} />
             </mesh>
@@ -447,36 +449,44 @@ function PowerNode({ type, position }: { type: string; position: [number, number
         </>
       )}
 
-      {/* ── GAS ── */}
+      {/* ── GAS FACTORY ── */}
       {type === 'gas' && (
-        <>
-          {/* Main tank */}
-          <mesh position={[0, 1.0, 0]}>
-            <cylinderGeometry args={[0.6, 0.6, 2.0, 12]} />
-            <meshStandardMaterial color="#554433" roughness={0.7} metalness={0.3} />
+        <group position={[0, -0.05, 0]}>
+          {/* Main factory building */}
+          <mesh position={[0, 0.4, 0]}>
+            <boxGeometry args={[1.5, 0.8, 1.2]} />
+            <meshStandardMaterial color="#475569" roughness={0.8} />
           </mesh>
-          {/* Tank rings */}
-          {[0.3, 0.9, 1.5].map(y => (
-            <mesh key={y} position={[0, y, 0]}>
-              <torusGeometry args={[0.62, 0.02, 8, 24]} />
-              <meshStandardMaterial color="#776655" roughness={0.5} metalness={0.5} />
-            </mesh>
-          ))}
-          {/* Smokestack */}
-          <mesh position={[0.5, 1.2, 0]}>
-            <cylinderGeometry args={[0.1, 0.12, 2.4, 8]} />
-            <meshStandardMaterial color="#666" roughness={0.7} />
+          {/* Secondary building */}
+          <mesh position={[0.8, 0.3, -0.2]}>
+            <boxGeometry args={[0.8, 0.6, 0.8]} />
+            <meshStandardMaterial color="#334155" roughness={0.9} />
           </mesh>
-          {/* Pipe connector */}
-          <mesh position={[0.25, 0.6, 0.5]}>
-            <cylinderGeometry args={[0.04, 0.04, 0.8, 6]} />
-            <meshStandardMaterial color="#777" roughness={0.5} metalness={0.5} />
+          {/* Main Boiler / Tank */}
+          <mesh position={[-0.9, 0.6, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.4, 0.4, 1.2, 16]} />
+            <meshStandardMaterial color="#64748b" metalness={0.6} roughness={0.4} />
           </mesh>
-          {/* Flame glow */}
+          {/* Large Smokestack */}
+          <mesh position={[0.4, 1.5, 0.3]}>
+            <cylinderGeometry args={[0.15, 0.2, 3.0, 12]} />
+            <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+          </mesh>
+          {/* Small Smokestack */}
+          <mesh position={[0.1, 1.2, 0.3]}>
+            <cylinderGeometry args={[0.08, 0.1, 2.4, 8]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.7} />
+          </mesh>
+          {/* Cooling Tower / Flare stack */}
+          <mesh position={[-0.2, 1.0, -0.4]}>
+            <cylinderGeometry args={[0.05, 0.05, 2.0, 8]} />
+            <meshStandardMaterial color="#475569" metalness={0.4} />
+          </mesh>
+          {/* Flame glow when active */}
           {active && (
-            <pointLight position={[0.5, 2.5, 0]} color="#FF6B00" intensity={3} distance={5} />
+            <pointLight position={[-0.2, 2.1, -0.4]} color="#FF6B00" intensity={2.5} distance={6} />
           )}
-        </>
+        </group>
       )}
 
       {/* Status light on pad */}
