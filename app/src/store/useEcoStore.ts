@@ -45,6 +45,14 @@ export interface Trade {
   timestamp: number
 }
 
+export interface HistoryData {
+  time: string
+  supply: number
+  demand: number
+  traditionalLoad: number
+  avgPrice: number
+}
+
 export type WeatherMode = 'clear' | 'overcast' | 'storm' | 'heatwave' | 'blizzard' | 'wind'
 
 /* ═══════════════════════════════════════════
@@ -204,6 +212,10 @@ interface EcoStore {
   trades: Trade[]
   addTrade: (t: Trade) => void
 
+  // History & Analytics
+  history: HistoryData[]
+  addHistoryPoint: (pt: HistoryData) => void
+
   // Side panel
   panelOpen: boolean
   setPanelOpen: (open: boolean) => void
@@ -297,6 +309,15 @@ export const useEcoStore = create<EcoStore>((set) => ({
     set((state) => ({
       trades: [trade, ...state.trades].slice(0, 20),
     })),
+
+  // History & Analytics
+  history: [],
+  addHistoryPoint: (pt) =>
+    set((state) => {
+      const newHist = [...state.history, pt]
+      if (newHist.length > 20) newHist.shift() // Keep 20 seconds of chart rolling context
+      return { history: newHist }
+    }),
 
   // Panel
   panelOpen: false,

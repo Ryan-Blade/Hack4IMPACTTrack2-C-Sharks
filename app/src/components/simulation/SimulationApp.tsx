@@ -544,7 +544,7 @@ function CloudSystem() {
   const wm = useEcoStore(s => s.weatherMode)
   const ref = useRef<THREE.Group>(null)
 
-  useFrame((state) => {
+  useFrame(() => {
     if (ref.current) {
       ref.current.position.x += (wm === 'storm' || wm === 'wind' ? 0.05 : 0.01)
       if (ref.current.position.x > 40) ref.current.position.x = -60
@@ -621,7 +621,7 @@ function NuclearStrike() {
     }
   }, [target, active])
 
-  useFrame((state, delta) => {
+  useFrame((_state, delta) => {
     if (active && target) {
       if (rocketRef.current && rocketRef.current.position.y > 0) {
         rocketRef.current.position.y -= delta * 50 // High speed
@@ -767,15 +767,27 @@ function useAutoBalance() {
       })
       useEcoStore.setState({ buildings: updated })
 
+      let avgPrice = 0.05
       const sellers = updated.filter(b => b.isSelling)
       const buyers = updated.filter(b => b.isBuying || b.isCritical)
       if (sellers.length && buyers.length) {
         const from = sellers[Math.floor(Math.random() * sellers.length)]
         const to = buyers[Math.floor(Math.random() * buyers.length)]
+        avgPrice = +(Math.random() * 0.1 + (shortage > 0 ? 0.08 : 0.03)).toFixed(3)
         s.addTrade({ id: Math.random().toString(36).substr(2, 9), from: from.name, to: to.name,
-          amount: +(Math.random() * 5 + 1).toFixed(2), price: +(Math.random() * 0.1 + 0.05).toFixed(3),
+          amount: +(Math.random() * 5 + 1).toFixed(2), price: avgPrice,
           txHash: '0x' + Math.random().toString(16).substr(2, 12), timestamp: Date.now() })
+      } else {
+        avgPrice = +(Math.random() * 0.02 + 0.04).toFixed(3)
       }
+
+      s.addHistoryPoint({
+        time: new Date().toLocaleTimeString([], { hour12: false, minute: '2-digit', second: '2-digit' }),
+        supply: +supply.toFixed(1),
+        demand: +demand.toFixed(1),
+        traditionalLoad: +(demand * 1.3).toFixed(1),
+        avgPrice
+      })
     }, 2000)
     return () => clearInterval(id)
   }, [])

@@ -1,8 +1,22 @@
 import { useEcoStore } from '@/store/useEcoStore'
 import type { WeatherMode } from '@/store/useEcoStore'
 import { useState } from 'react'
+import { AreaChart, Area, LineChart, Line, PieChart, Pie, Cell, ResponsiveContainer, Tooltip, YAxis } from 'recharts'
 
 const mono = 'Inter,sans-serif'
+
+const CustomTooltip = ({ active, payload }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div style={{ background: 'rgba(6,13,26,0.95)', border: '1px solid rgba(0,212,255,0.2)', padding: '6px 10px', borderRadius: '6px', fontSize: 10, fontFamily: mono }}>
+        {payload.map((p: any) => (
+          <div key={p.dataKey} style={{ color: p.color, fontWeight: 600 }}>{p.name}: {p.value}</div>
+        ))}
+      </div>
+    )
+  }
+  return null
+}
 
 export default function SidePanel() {
   const panelOpen = useEcoStore((s) => s.panelOpen)
@@ -17,12 +31,26 @@ export default function SidePanel() {
   const loc = useEcoStore((s) => s.activeLocation)
   const nuclearMode = useEcoStore((s) => s.nuclearMode)
   const setNuclearMode = useEcoStore((s) => s.setNuclearMode)
+  const history = useEcoStore((s) => s.history)
+  const buildings = useEcoStore((s) => s.buildings)
   const [godOpen, setGodOpen] = useState(false)
 
   if (!panelOpen) return null
 
   const balance = totalSupply - totalDemand
   const statusColor = gridStatus === 'OPTIMIZED' ? '#00F5A0' : gridStatus === 'WARNING' ? '#FFD700' : '#FF4444'
+
+  const sellers = buildings.filter(b => b.active && b.isSelling).length
+  const buyers = buildings.filter(b => b.active && !b.isDestroyed && b.isBuying).length
+  const critical = buildings.filter(b => b.active && !b.isDestroyed && b.isCritical).length
+  const optimized = buildings.filter(b => b.active && !b.isDestroyed && !b.isSelling && !b.isBuying && !b.isCritical).length
+
+  const pieData = [
+    { name: 'Producer', value: sellers, color: '#00F5A0' },
+    { name: 'Consumer', value: buyers, color: '#FFD700' },
+    { name: 'Critical', value: critical, color: '#FF4444' },
+    { name: 'Idle', value: optimized, color: 'rgba(255,255,255,0.2)' }
+  ].filter(d => d.value > 0)
 
   const sourceKeys = ['solar', 'wind', 'hydro', 'gas'] as const
   const sourceIcons: Record<string, string> = { solar: '☀️', wind: '🌬️', hydro: '💧', gas: '🔥' }
@@ -134,6 +162,76 @@ export default function SidePanel() {
           </div>
         ))}
       </div>
+
+      {/* Analytics Dashboard */}
+      {history.length > 0 && (
+        <>
+          <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+            Live Analytics
+          </div>
+
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 12, padding: '12px 10px', marginBottom: 16 }}>
+            {/* EcoSync vs Traditional Load */}
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>EcoSync Load vs Traditional Grid</div>
+            <div style={{ height: 60, marginBottom: 16 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={history}>
+                  <defs>
+                    <linearGradient id="colorTrad" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#FF4444" stopOpacity={0.3}/><stop offset="95%" stopColor="#FF4444" stopOpacity={0}/></linearGradient>
+                    <linearGradient id="colorSmart" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#00F5A0" stopOpacity={0.3}/><stop offset="95%" stopColor="#00F5A0" stopOpacity={0}/></linearGradient>
+                  </defs>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="traditionalLoad" name="Traditional Load" stroke="#FF4444" fillOpacity={1} fill="url(#colorTrad)" />
+                  <Area type="monotone" dataKey="demand" name="EcoSync Load" stroke="#00F5A0" fillOpacity={1} fill="url(#colorSmart)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+
+            {/* Generation vs Load */}
+            <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Grid Generation vs Load</div>
+            <div style={{ height: 60, marginBottom: 16 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={history}>
+                  <Tooltip content={<CustomTooltip />} />
+                  <Line type="monotone" dataKey="supply" name="Supply" stroke="#00D4FF" strokeWidth={2} dot={false} />
+                  <Line type="monotone" dataKey="demand" name="Demand" stroke="#FFD700" strokeWidth={2} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              {/* Token Price */}
+              <div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Token Price ($/kW)</div>
+                <div style={{ height: 60 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={history}>
+                      <YAxis domain={['auto', 'auto']} hide />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Area type="step" dataKey="avgPrice" name="Price" stroke="#7C6BFF" fillOpacity={0.2} fill="#7C6BFF" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Status Dist */}
+              <div>
+                <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', marginBottom: 4 }}>Node Distribution</div>
+                <div style={{ height: 60, position: 'relative' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Tooltip content={<CustomTooltip />} />
+                      <Pie data={pieData} innerRadius={20} outerRadius={30} dataKey="value" stroke="none">
+                        {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Trade Log */}
       <div style={{ fontFamily: mono, fontSize: 10, color: 'rgba(255,255,255,0.4)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.1em' }}>
